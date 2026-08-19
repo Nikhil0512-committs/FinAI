@@ -1,0 +1,52 @@
+{
+  "training_rows": 24128,
+  "features": [
+    "time_gap_mins",
+    "last_pnl",
+    "position_size_ratio",
+    "volatility_20",
+    "rsi_14",
+    "macd",
+    "ret_5"
+  ],
+  "accuracy": 0.9998,
+  "class_report": {
+    "OPTIMAL": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 1915.0
+    },
+    "REVENGE": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 956.0
+    },
+    "FOMO": {
+      "precision": 0.9989795918367347,
+      "recall": 1.0,
+      "f1-score": 0.9994895354772844,
+      "support": 979.0
+    },
+    "ESCALATION": {
+      "precision": 1.0,
+      "recall": 0.9989754098360656,
+      "f1-score": 0.9994874423372629,
+      "support": 976.0
+    },
+    "accuracy": 0.9997927890592623,
+    "macro avg": {
+      "precision": 0.9997448979591836,
+      "recall": 0.9997438524590164,
+      "f1-score": 0.9997442444536369,
+      "support": 4826.0
+    },
+    "weighted avg": {
+      "precision": 0.9997930004989977,
+      "recall": 0.9997927890592623,
+      "f1-score": 0.9997927888424015,
+      "support": 4826.0
+    }
+  }
+}

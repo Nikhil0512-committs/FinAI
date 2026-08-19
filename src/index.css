@@ -1,0 +1,10 @@
+
+@keyframes tapeScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-tape-scroll {
+  animation: tapeScroll 60s linear infinite;
+  will-change: transform;
+}

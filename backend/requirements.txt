@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+psycopg2-binary
+python-dotenv
+pandas
+numpy
+scikit-learn
+joblib
+yfinance
+requests
+websockets
+xgboost
+dhanhq
+fyers_apiv3

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTrading } from '../context/TradingContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
+
+const API_BASE = import.meta.env.VITE_API_URL || "";
   ResponsiveContainer, ComposedChart, Line, Area, Bar, XAxis, YAxis, Tooltip, CartesianGrid
 } from 'recharts';
 import {
@@ -78,12 +80,12 @@ export const MarketIntelligence = () => {
 
   const fetchCandlesAndTechnicals = async (sym, tf) => {
     try {
-      const res = await fetch(`/api/candles/${encodeURIComponent(sym)}?timeframe=${tf}&limit=120`);
+      const res = await fetch(`${API_BASE}/api/candles/${encodeURIComponent(sym)}?timeframe=${tf}&limit=120`);
       if (res.ok) {
         const data = await res.json();
         setCandlesData(data.candles || []);
         try {
-          const quoteRes = await fetch(`/api/quote/${encodeURIComponent(sym)}`);
+          const quoteRes = await fetch(`${API_BASE}/api/quote/${encodeURIComponent(sym)}`);
           if (quoteRes.ok) {
             const quoteData = await quoteRes.json();
             setCurrentQuote({ price: quoteData.price || 0, change_pct: quoteData.change_pct || 0 });
@@ -100,7 +102,7 @@ export const MarketIntelligence = () => {
 
   const fetchMarketIntelligence = async (sym) => {
     try {
-      const res = await fetch(`/api/market-intelligence/${encodeURIComponent(sym)}`);
+      const res = await fetch(`${API_BASE}/api/market-intelligence/${encodeURIComponent(sym)}`);
       if (res.ok) {
         const data = await res.json();
         setIntelData(data);
@@ -120,7 +122,7 @@ export const MarketIntelligence = () => {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      fetch(`/api/quote/${encodeURIComponent(selectedStock)}`)
+      fetch(`${API_BASE}/api/quote/${encodeURIComponent(selectedStock)}`)
         .then((res) => res.ok ? res.json() : null)
         .then((q) => { if (q && q.price) setCurrentQuote({ price: q.price, change_pct: q.change_pct || 0 }); })
         .catch(() => {});
@@ -132,7 +134,7 @@ export const MarketIntelligence = () => {
     setBacktestLoading(true);
     setBacktestResult(null);
     try {
-      const res = await fetch('/api/strategy/backtest', {
+      const res = await fetch(`${API_BASE}/api/strategy/backtest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { 
+
+const API_BASE = import.meta.env.VITE_API_URL || "";
   ResponsiveContainer, 
   RadarChart, 
   PolarGrid, 
@@ -86,7 +88,7 @@ export const BehavioralScorecard = () => {
       setLoading(true);
       try {
         const activeUser = userId || 'usr_guest';
-        const res = await fetch(`/api/behavioral-profile?user_id=${encodeURIComponent(activeUser)}`);
+        const res = await fetch(`${API_BASE}/api/behavioral-profile?user_id=${encodeURIComponent(activeUser)}`);
         if (res.ok) {
           const data = await res.json();
           setProfileData(data);

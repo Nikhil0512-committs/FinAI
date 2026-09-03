@@ -3,6 +3,8 @@ import { useTrading } from '../context/TradingContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { 
+
+const API_BASE = import.meta.env.VITE_API_URL || "";
   ShieldCheck, 
   TerminalSquare, 
   Activity,
@@ -41,7 +43,7 @@ export const OrderBook = () => {
   const handleFetchPostMortem = async (tradeCode) => {
     try {
       setLoadingPostMortem(tradeCode);
-      const res = await fetch('/api/trade/post-mortem', {
+      const res = await fetch(`${API_BASE}/api/trade/post-mortem', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ trade_code: tradeCode })

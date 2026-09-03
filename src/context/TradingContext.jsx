@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
 const TradingContext = createContext();
 
 export const TradingProvider = ({ children }) => {
@@ -40,7 +42,7 @@ export const TradingProvider = ({ children }) => {
   const fetchPortfolio = async (uid = userId) => {
     try {
       const activeUser = uid || 'usr_guest';
-      const res = await fetch(`/api/portfolio?user_id=${encodeURIComponent(activeUser)}`);
+      const res = await fetch(`${API_BASE}/api/portfolio?user_id=${encodeURIComponent(activeUser)}`);
       if (res.ok) {
         const data = await res.json();
         setPortfolio(data.portfolio);
@@ -56,7 +58,7 @@ export const TradingProvider = ({ children }) => {
   const fetchTrades = async (uid = userId) => {
     try {
       const activeUser = uid || 'usr_guest';
-      const res = await fetch(`/api/trades?user_id=${encodeURIComponent(activeUser)}`);
+      const res = await fetch(`${API_BASE}/api/trades?user_id=${encodeURIComponent(activeUser)}`);
       if (res.ok) {
         const data = await res.json();
         setTrades(data.trades);
@@ -68,12 +70,12 @@ export const TradingProvider = ({ children }) => {
 
   const fetchStockList = async () => {
     try {
-      const res = await fetch('/api/stocks');
+      const res = await fetch(`${API_BASE}/api/stocks');
       if (res.ok) {
         const data = await res.json();
         setStockList(data.stocks);
 
-        const liveRes = await fetch('/api/live-stocks?limit=250');
+        const liveRes = await fetch(`${API_BASE}/api/live-stocks?limit=250');
         if (liveRes.ok) {
           const liveData = await liveRes.json();
           const liveBySymbol = new Map(liveData.stocks.map((stock) => [stock.symbol, stock]));
@@ -96,7 +98,7 @@ export const TradingProvider = ({ children }) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 6000);
     try {
-      const res = await fetch(`/api/candles/${encodeURIComponent(symbol)}?timeframe=${tf}`, {
+      const res = await fetch(`${API_BASE}/api/candles/${encodeURIComponent(symbol)}?timeframe=${tf}`, {
         signal: controller.signal
       });
       clearTimeout(timeoutId);
@@ -126,7 +128,7 @@ export const TradingProvider = ({ children }) => {
   const fetchLiveQuote = async (symbol = selectedStock) => {
     if (!symbol) return;
     try {
-      const res = await fetch(`/api/quote/${encodeURIComponent(symbol)}`);
+      const res = await fetch(`${API_BASE}/api/quote/${encodeURIComponent(symbol)}`);
       if (res.ok) {
         const data = await res.json();
         if (data.price !== null && data.price !== undefined) {
@@ -149,7 +151,7 @@ export const TradingProvider = ({ children }) => {
 
     for (const sym of activeSymbols) {
       try {
-        const res = await fetch(`/api/quote/${encodeURIComponent(sym)}`);
+        const res = await fetch(`${API_BASE}/api/quote/${encodeURIComponent(sym)}`);
         if (res.ok) {
           const data = await res.json();
           if (data.price !== null && data.price !== undefined) {
@@ -176,7 +178,7 @@ export const TradingProvider = ({ children }) => {
 
   const fetchApiKeys = async () => {
     try {
-      const res = await fetch('/api/keys');
+      const res = await fetch(`${API_BASE}/api/keys');
       if (res.ok) {
         const data = await res.json();
         setApiKeys(data.keys || {});
@@ -188,7 +190,7 @@ export const TradingProvider = ({ children }) => {
 
   const saveApiKeys = async (payload) => {
     try {
-      const res = await fetch('/api/keys', {
+      const res = await fetch(`${API_BASE}/api/keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -267,11 +269,7 @@ export const TradingProvider = ({ children }) => {
 
     const connectWebSocket = () => {
       try {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const host = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-          ? '127.0.0.1:8000'
-          : window.location.host;
-        const wsUrl = `${protocol}//${host}/ws/stream`;
+        const wsUrl = API_BASE ? API_BASE.replace("http", "ws") + "/ws/stream" : 'ws://127.0.0.1:8000/ws/stream';
 
         ws = new WebSocket(wsUrl);
 
@@ -402,7 +400,7 @@ export const TradingProvider = ({ children }) => {
     }
 
     try {
-      const res = await fetch('/api/trade/evaluate', {
+      const res = await fetch(`${API_BASE}/api/trade/evaluate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderParams)
@@ -459,7 +457,7 @@ export const TradingProvider = ({ children }) => {
     }
 
     try {
-      const res = await fetch('/api/trade/execute', {
+      const res = await fetch(`${API_BASE}/api/trade/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...orderParams, accept_cooling_off: acceptCoolingOff })
@@ -537,7 +535,7 @@ export const TradingProvider = ({ children }) => {
     }
 
     try {
-      const res = await fetch('/api/trade/close', {
+      const res = await fetch(`${API_BASE}/api/trade/close', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ trade_code: tradeCode, exit_price: exitPrice ? parseFloat(exitPrice) : null })

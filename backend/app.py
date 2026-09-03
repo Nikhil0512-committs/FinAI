@@ -559,7 +559,15 @@ def run_strategy_backtest(req: StrategyBacktestRequest):
             entry_p = position['entry_price']
             pct_change = ((price - entry_p) / entry_p) * 100.0
             
-            if pct_change >= tp_pct or pct_change <= -sl_pct or (strat == "RSI_MEAN_REVERSION" and rsi > 62):
+            indicator_exit = False
+            if strat == "RSI_MEAN_REVERSION" and rsi > 62:
+                indicator_exit = True
+            elif strat == "SMA_BREAKOUT" and price < sma20:
+                indicator_exit = True
+            elif strat == "EMA_CROSS" and ema9 < sma20:
+                indicator_exit = True
+                
+            if pct_change >= tp_pct or pct_change <= -sl_pct or indicator_exit:
                 pnl = (price - entry_p) * position['qty']
                 balance += pnl
                 trades.append({
@@ -572,6 +580,22 @@ def run_strategy_backtest(req: StrategyBacktestRequest):
                 position = None
                 
         equity_curve.append(round(balance, 2))
+        
+    # Close any open position at the end of the simulation
+    if position is not None:
+        entry_p = position['entry_price']
+        final_price = float(candles[-1]['close'])
+        pct_change = ((final_price - entry_p) / entry_p) * 100.0
+        pnl = (final_price - entry_p) * position['qty']
+        balance += pnl
+        trades.append({
+            'entry_price': round(entry_p, 2),
+            'exit_price': round(final_price, 2),
+            'pnl': round(pnl, 2),
+            'pnl_pct': round(pct_change, 2),
+            'win': pnl > 0
+        })
+        equity_curve[-1] = round(balance, 2)
         
     wins = [t for t in trades if t['win']]
     win_rate = round((len(wins) / max(len(trades), 1)) * 100.0, 1)

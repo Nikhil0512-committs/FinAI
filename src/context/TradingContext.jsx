@@ -70,12 +70,12 @@ export const TradingProvider = ({ children }) => {
 
   const fetchStockList = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/stocks');
+      const res = await fetch(`${API_BASE}/api/stocks`);
       if (res.ok) {
         const data = await res.json();
         setStockList(data.stocks);
 
-        const liveRes = await fetch(`${API_BASE}/api/live-stocks?limit=250');
+        const liveRes = await fetch(`${API_BASE}/api/live-stocks?limit=250`);
         if (liveRes.ok) {
           const liveData = await liveRes.json();
           const liveBySymbol = new Map(liveData.stocks.map((stock) => [stock.symbol, stock]));
@@ -178,7 +178,7 @@ export const TradingProvider = ({ children }) => {
 
   const fetchApiKeys = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/keys');
+      const res = await fetch(`${API_BASE}/api/keys`);
       if (res.ok) {
         const data = await res.json();
         setApiKeys(data.keys || {});
@@ -190,7 +190,7 @@ export const TradingProvider = ({ children }) => {
 
   const saveApiKeys = async (payload) => {
     try {
-      const res = await fetch(`${API_BASE}/api/keys', {
+      const res = await fetch(`${API_BASE}/api/keys`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -400,7 +400,7 @@ export const TradingProvider = ({ children }) => {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/api/trade/evaluate', {
+      const res = await fetch(`${API_BASE}/api/trade/evaluate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderParams)
@@ -457,7 +457,7 @@ export const TradingProvider = ({ children }) => {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/api/trade/execute', {
+      const res = await fetch(`${API_BASE}/api/trade/execute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...orderParams, accept_cooling_off: acceptCoolingOff })
@@ -535,7 +535,7 @@ export const TradingProvider = ({ children }) => {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/api/trade/close', {
+      const res = await fetch(`${API_BASE}/api/trade/close`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ trade_code: tradeCode, exit_price: exitPrice ? parseFloat(exitPrice) : null })

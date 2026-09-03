@@ -43,7 +43,7 @@ export const OrderBook = () => {
   const handleFetchPostMortem = async (tradeCode) => {
     try {
       setLoadingPostMortem(tradeCode);
-      const res = await fetch(`${API_BASE}/api/trade/post-mortem', {
+      const res = await fetch(`${API_BASE}/api/trade/post-mortem`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ trade_code: tradeCode })

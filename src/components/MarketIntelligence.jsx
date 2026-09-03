@@ -134,7 +134,7 @@ export const MarketIntelligence = () => {
     setBacktestLoading(true);
     setBacktestResult(null);
     try {
-      const res = await fetch(`${API_BASE}/api/strategy/backtest', {
+      const res = await fetch(`${API_BASE}/api/strategy/backtest`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

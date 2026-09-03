@@ -12,7 +12,7 @@ import { TerminalPage } from './pages/TerminalPage';
 import { IntelligencePage } from './pages/IntelligencePage';
 import { ScorecardPage } from './pages/ScorecardPage';
 import { OrdersPage } from './pages/OrdersPage';
-import { ApiKeysPage } from './pages/ApiKeysPage';
+
 import { LandingPage } from './pages/LandingPage';
 import { PlatformPage } from './pages/PlatformPage';
 import { ResearchPage } from './pages/ResearchPage';
@@ -56,7 +56,7 @@ export function App() {
                     <Route path="/intelligence" element={<IntelligencePage />} />
                     <Route path="/scorecard" element={<ScorecardPage />} />
                     <Route path="/orders" element={<OrdersPage />} />
-                    <Route path="/api-keys" element={<ApiKeysPage />} />
+                    } />
                     <Route path="/platform" element={<PlatformPage />} />
                     <Route path="/research" element={<ResearchPage />} />
                     <Route path="/login" element={<LoginPage />} />

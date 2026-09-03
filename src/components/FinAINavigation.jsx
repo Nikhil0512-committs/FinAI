@@ -270,7 +270,7 @@ export const FinAINavigation = ({ mode = "app" }) => {
     { label: 'Intelligence', to: '/intelligence', icon: BrainCircuit, group: 'intel' },
     { label: 'Scorecard', to: '/scorecard', icon: BarChart3, group: 'intel' },
     { label: 'Orders', to: '/orders', icon: History, group: 'exec' },
-    { label: 'API Keys', to: '/api-keys', icon: Key, group: 'config' },
+    
   ];
 
   const activeNav = isPublic ? publicNav : appNav;

@@ -549,7 +549,7 @@ def run_strategy_backtest(req: StrategyBacktestRequest):
             signal = True
         elif strat == "SMA_BREAKOUT" and price > sma20 and prev_price <= prev_sma20 and position is None:
             signal = True
-        elif strat == "EMA_CROSSOVER" and ema9 > sma20 and prev_ema9 <= prev_sma20 and position is None:
+        elif strat == "EMA_CROSS" and ema9 > sma20 and prev_ema9 <= prev_sma20 and position is None:
             signal = True
             
         if signal:

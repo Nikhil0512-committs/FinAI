@@ -1230,7 +1230,7 @@ class FinAIDatabase:
 
             self.sqlite_conn.commit()
             return {'user_id': user_id, 'username': username_clean, 'email': email_clean}
-        except sqlite3.IntegrityError:
+        except psycopg2.IntegrityError:
             raise ValueError("Username or Email already registered.")
 
     def authenticate_user(self, username, password):

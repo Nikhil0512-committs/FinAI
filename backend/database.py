@@ -1220,7 +1220,7 @@ class FinAIDatabase:
         try:
             cursor.execute("""
                 INSERT INTO users (user_id, username, email, password_hash)
-                VALUES (?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s)
             """, (user_id, username_clean, email_clean, password_hash))
             
             # Initialize portfolio with 100,000 INR baseline
@@ -1240,7 +1240,7 @@ class FinAIDatabase:
         password_hash = hashlib.sha256(password.encode()).hexdigest()
 
         cursor.execute("""
-            SELECT * FROM users WHERE (username = %s OR email = %s) AND password_hash = ?
+            SELECT * FROM users WHERE (username = %s OR email = %s) AND password_hash = %s
         """, (username_clean, username_clean.lower(), password_hash))
         row = cursor.fetchone()
         if not row:
@@ -1324,7 +1324,7 @@ class FinAIDatabase:
                     closed_code = f"T-C-{max_id + 1:04d}"
                     cursor.execute("""
                         INSERT INTO trades (trade_code, user_id, symbol, side, quantity, price, exit_price, total_value, timestamp, exit_timestamp, sentiment_tag, status, pnl, holding_time_minutes, product_type, order_type)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'CLOSED', ?, ?, ?, ?)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'CLOSED', %s, %s, %s, %s)
                     """, (closed_code, user_id, symbol_upper, opposite_side, match_qty, op_price, price, match_qty * op_price, op_trade['timestamp'], now, sentiment_tag, trade_pnl, holding_mins, product_type, trade_order_type))
 
                 remaining_qty -= match_qty
@@ -1343,7 +1343,7 @@ class FinAIDatabase:
 
             cursor.execute("""
                 INSERT INTO trades (trade_code, user_id, symbol, side, quantity, price, total_value, timestamp, sentiment_tag, status, product_type, order_type, stop_loss, take_profit)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (trade_code, user_id, symbol_upper, side_upper, remaining_qty, price, total_val, now, sentiment_tag, status, product_type, trade_order_type, sl_val, tp_val))
 
             if status == 'EXECUTED':
@@ -1531,7 +1531,7 @@ class FinAIDatabase:
         cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         cursor.execute("""
             INSERT INTO api_keys (key_name, key_value, updated_at)
-            VALUES (?, ?, CURRENT_TIMESTAMP)
+            VALUES (%s, %s, CURRENT_TIMESTAMP)
             ON CONFLICT(key_name) DO UPDATE SET key_value = excluded.key_value, updated_at = CURRENT_TIMESTAMP
         """, (key_name, key_value))
         self.sqlite_conn.commit()

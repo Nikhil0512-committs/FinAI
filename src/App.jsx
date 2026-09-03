@@ -56,7 +56,6 @@ export function App() {
                     <Route path="/intelligence" element={<IntelligencePage />} />
                     <Route path="/scorecard" element={<ScorecardPage />} />
                     <Route path="/orders" element={<OrdersPage />} />
-                    } />
                     <Route path="/platform" element={<PlatformPage />} />
                     <Route path="/research" element={<ResearchPage />} />
                     <Route path="/login" element={<LoginPage />} />

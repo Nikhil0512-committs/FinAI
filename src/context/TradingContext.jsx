@@ -176,9 +176,28 @@ export const TradingProvider = ({ children }) => {
 
   const [apiKeys, setApiKeys] = useState({});
 
-  
+  const fetchApiKeys = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/keys`);
+      if (res.ok) {
+        const data = await res.json();
+        setApiKeys(data.keys || {});
+      }
+    } catch (e) {
+      console.warn("Failed to fetch API keys");
+    }
+  };
 
-  
+  const saveApiKeys = async (payload) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/keys`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        // await fetchApiKeys();
+        return { success: true };
       }
     } catch (e) {
       console.error("Error saving keys:", e);
@@ -233,7 +252,7 @@ export const TradingProvider = ({ children }) => {
     fetchStockList();
     fetchPortfolio(userId);
     fetchTrades(userId);
-    
+    // fetchApiKeys();
     fetchMarketStatus();
   }, [userId]);
 

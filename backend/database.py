@@ -1156,14 +1156,14 @@ class FinAIDatabase:
         cursor.execute("SELECT * FROM portfolio WHERE user_id = %s", (user_id,))
         row = cursor.fetchone()
         if not row:
-            cursor.execute("INSERT INTO portfolio (user_id, cash_balance, initial_balance) VALUES (?, 100000.0, 100000.0)", (user_id,))
+            cursor.execute("INSERT INTO portfolio (user_id, cash_balance, initial_balance) VALUES (%s, 100000.0, 100000.0)", (user_id,))
             self.sqlite_conn.commit()
             return {'cash_balance': 100000.0, 'initial_balance': 100000.0, 'invested': 0.0, 'open_positions_value': 0.0, 'unrealized_pnl': 0.0, 'realized_pnl': 0.0, 'total_value': 100000.0, 'total_pnl': 0.0, 'open_trades_count': 0}
             
         cash = float(row['cash_balance'])
         initial = float(row['initial_balance'])
         
-        cursor.execute("SELECT SUM(pnl) FROM trades WHERE user_id = ? AND status = 'CLOSED'", (user_id,))
+        cursor.execute("SELECT SUM(pnl) FROM trades WHERE user_id = %s AND status = 'CLOSED'", (user_id,))
         realized_row = cursor.fetchone()
         realized_pnl = float(realized_row[0]) if (realized_row and realized_row[0] is not None) else 0.0
 
@@ -1225,7 +1225,7 @@ class FinAIDatabase:
             
             # Initialize portfolio with 100,000 INR baseline
             cursor.execute("""
-                INSERT INTO portfolio (user_id, cash_balance, initial_balance) VALUES (?, 100000.0, 100000.0) ON CONFLICT (user_id) DO NOTHING
+                INSERT INTO portfolio (user_id, cash_balance, initial_balance) VALUES (%s, 100000.0, 100000.0) ON CONFLICT (user_id) DO NOTHING
             """, (user_id,))
 
             self.sqlite_conn.commit()
@@ -1249,7 +1249,7 @@ class FinAIDatabase:
 
     def execute_paper_trade(self, user_id, symbol, side, quantity, price, sentiment_tag='Neutral', product_type='DELIVERY', order_type='MARKET', stop_loss=None, take_profit=None):
         cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cursor.execute("INSERT INTO portfolio (user_id, cash_balance, initial_balance) VALUES (?, 100000.0, 100000.0) ON CONFLICT (user_id) DO NOTHING", (user_id,))
+        cursor.execute("INSERT INTO portfolio (user_id, cash_balance, initial_balance) VALUES (%s, 100000.0, 100000.0) ON CONFLICT (user_id) DO NOTHING", (user_id,))
         symbol_upper = symbol.upper().strip()
         side_upper = side.upper().strip()
 
@@ -1516,7 +1516,7 @@ class FinAIDatabase:
 
     def get_trade_count(self, user_id='default_user'):
         cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cursor.execute("SELECT COUNT(*) FROM trades WHERE user_id = ?", (user_id,))
+        cursor.execute("SELECT COUNT(*) FROM trades WHERE user_id = %s", (user_id,))
         row = cursor.fetchone()
         return row[0] if row else 0
 

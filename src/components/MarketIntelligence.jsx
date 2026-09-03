@@ -3,7 +3,6 @@ import { useTrading } from '../context/TradingContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
   ResponsiveContainer, ComposedChart, Line, Area, Bar, XAxis, YAxis, Tooltip, CartesianGrid
 } from 'recharts';
 import {
@@ -58,6 +57,8 @@ const ConfidenceRing = ({ percentage, colorClass, size = 160, strokeWidth = 10, 
     </div>
   );
 };
+
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 export const MarketIntelligence = () => {
   const {

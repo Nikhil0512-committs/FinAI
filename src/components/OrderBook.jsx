@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { 
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
   ShieldCheck, 
   TerminalSquare, 
   Activity,
@@ -15,6 +14,8 @@ const API_BASE = import.meta.env.VITE_API_URL || "";
   Search,
   Filter
 } from 'lucide-react';
+
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 export const OrderBook = () => {
   const { trades, closeTrade, currentQuote, stockList } = useTrading();

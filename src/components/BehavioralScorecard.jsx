@@ -5,7 +5,6 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { 
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
   ResponsiveContainer, 
   RadarChart, 
   PolarGrid, 
@@ -14,6 +13,7 @@ const API_BASE = import.meta.env.VITE_API_URL || "";
   Radar
 } from 'recharts';
 import { 
+
   ShieldCheck, 
   Target, 
   Clock, 
@@ -70,6 +70,8 @@ const DisciplineRing = ({ score }) => {
     </div>
   );
 };
+
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 export const BehavioralScorecard = () => {
   const { userId } = useAuth();

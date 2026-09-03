@@ -159,6 +159,23 @@ const GuestTrader = () => {
               >
                 Open Terminal
               </button>
+
+              {authContext?.isAuthenticated ? (
+                <button 
+                  onClick={() => { authContext.logout(); setIsOpen(false); navigate('/login'); }} 
+                  className="w-full text-center py-2 bg-rose-950/30 text-rose-400 border border-rose-900/40 text-[10px] font-mono font-bold uppercase tracking-widest hover:bg-rose-950/60 transition-colors rounded-sm"
+                >
+                  Sign Out
+                </button>
+              ) : (
+                <button 
+                  onClick={() => { authContext.setIsAuthModalOpen(true); setIsOpen(false); }} 
+                  className="w-full text-center py-2 bg-emerald-950/30 text-emerald-400 border border-emerald-900/40 text-[10px] font-mono font-bold uppercase tracking-widest hover:bg-emerald-950/60 transition-colors rounded-sm"
+                >
+                  Sign In / Register
+                </button>
+              )}
+
               {isDemoMode && (
                 <button 
                   onClick={() => { if(exitDemo) exitDemo(); setIsOpen(false); navigate('/'); }} 

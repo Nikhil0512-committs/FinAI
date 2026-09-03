@@ -17,6 +17,7 @@ import {
 export const OrderBook = () => {
   const { trades, closeTrade, currentQuote, stockList } = useTrading();
   const [selectedPostMortem, setSelectedPostMortem] = useState(null);
+  const [loadingPostMortem, setLoadingPostMortem] = useState(null);
   const [activeFilter, setActiveFilter] = useState('ALL');
 
   const floatVal = (v) => (v !== null && v !== undefined && !isNaN(v) ? parseFloat(v) : 0);
@@ -39,6 +40,7 @@ export const OrderBook = () => {
 
   const handleFetchPostMortem = async (tradeCode) => {
     try {
+      setLoadingPostMortem(tradeCode);
       const res = await fetch('/api/trade/post-mortem', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -50,6 +52,8 @@ export const OrderBook = () => {
       }
     } catch (e) {
       console.warn("Failed to fetch post-mortem:", e);
+    } finally {
+      setLoadingPostMortem(null);
     }
   };
 
@@ -505,9 +509,21 @@ export const OrderBook = () => {
                           <td className="py-3 px-4 text-right flex justify-end">
                             <button
                               onClick={() => handleFetchPostMortem(t.trade_code)}
-                              className="px-2 py-1 border border-gray-700 text-[9px] uppercase tracking-widest text-gray-400 hover:text-cyan-400 hover:border-cyan-400 transition-colors"
+                              disabled={loadingPostMortem === t.trade_code}
+                              className={`px-3 py-1 border text-[9px] font-mono uppercase tracking-widest transition-all rounded-sm flex items-center gap-1.5 ${
+                                loadingPostMortem === t.trade_code
+                                  ? 'border-cyan-500 text-cyan-400 bg-cyan-950/30 animate-pulse cursor-wait'
+                                  : 'border-gray-800 text-gray-400 hover:text-cyan-400 hover:border-cyan-500 hover:bg-cyan-950/20'
+                              }`}
                             >
-                              Post-Mortem
+                              {loadingPostMortem === t.trade_code ? (
+                                <>
+                                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+                                  <span>Analyzing...</span>
+                                </>
+                              ) : (
+                                <span>Post-Mortem</span>
+                              )}
                             </button>
                           </td>
                         </tr>
@@ -527,70 +543,118 @@ export const OrderBook = () => {
         {selectedPostMortem && (
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#050811]/90 backdrop-blur-sm"
+            onClick={(e) => { if (e.target === e.currentTarget) setSelectedPostMortem(null); }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#02040a]/90 backdrop-blur-md"
           >
             <motion.div 
-              initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }}
-              className="bg-[#020308] border border-gray-800 p-8 max-w-2xl w-full shadow-2xl relative"
+              initial={{ y: 20, opacity: 0, scale: 0.98 }} 
+              animate={{ y: 0, opacity: 1, scale: 1 }} 
+              exit={{ y: 20, opacity: 0, scale: 0.98 }}
+              className="bg-[#050811] border border-gray-800 p-6 md:p-8 max-w-2xl w-full shadow-2xl relative rounded-sm overflow-hidden"
             >
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 to-emerald-500" />
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-cyan-500 via-emerald-500 to-amber-500" />
               
+              {/* Header */}
               <div className="flex items-center justify-between border-b border-gray-900 pb-4 mb-6">
                 <div>
-                  <div className="text-[10px] font-mono text-cyan-500 uppercase tracking-widest flex items-center gap-2">
-                    <ShieldCheck className="w-3 h-3" /> Forensic Audit
+                  <div className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest flex items-center gap-2">
+                    <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" /> Quantitative Trade Forensic Audit
                   </div>
-                  <h3 className="font-mono text-xl text-white tracking-tight mt-1">
-                    Trade {selectedPostMortem.trade_code}
+                  <h3 className="font-mono text-xl text-white tracking-tight mt-1 flex items-center gap-3">
+                    <span>{selectedPostMortem.symbol}</span>
+                    <span className="text-gray-600 font-light">&bull;</span>
+                    <span className={selectedPostMortem.side === 'BUY' ? 'text-emerald-400 text-sm font-semibold' : 'text-rose-400 text-sm font-semibold'}>
+                      {selectedPostMortem.side}
+                    </span>
+                    <span className="text-xs text-gray-500 font-mono">({selectedPostMortem.trade_code})</span>
                   </h3>
                 </div>
                 <button
                   onClick={() => setSelectedPostMortem(null)}
-                  className="text-[10px] font-mono text-gray-500 hover:text-white uppercase tracking-widest border border-gray-800 px-3 py-1"
+                  className="text-[10px] font-mono text-gray-400 hover:text-white uppercase tracking-widest border border-gray-800 hover:border-gray-600 px-3 py-1.5 transition-colors rounded-sm"
                 >
-                  Close
+                  Close &times;
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mb-8">
-                <div className="border border-gray-900 p-4">
-                  <span className="text-[9px] font-mono text-gray-500 uppercase tracking-widest">Execution Grade</span>
-                  <div className={`text-3xl font-mono tabular-nums tracking-tight mt-1 ${
-                    selectedPostMortem.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'
+              {/* Top Summary Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                <div className="border border-gray-900 bg-[#020308] p-3.5 rounded-sm">
+                  <span className="text-[9px] font-mono text-gray-500 uppercase tracking-widest block mb-1">Execution Grade</span>
+                  <div className={`text-2xl font-mono font-bold tracking-tight ${
+                    selectedPostMortem.grade?.startsWith('A') ? 'text-emerald-400' :
+                    selectedPostMortem.grade?.startsWith('B') ? 'text-cyan-400' :
+                    selectedPostMortem.grade?.startsWith('C') ? 'text-amber-400' : 'text-rose-400'
                   }`}>
                     {selectedPostMortem.grade}
                   </div>
                 </div>
-                <div className="border border-gray-900 p-4 text-right">
-                  <span className="text-[9px] font-mono text-gray-500 uppercase tracking-widest">Realized P&L</span>
-                  <div className={`text-3xl font-mono tabular-nums tracking-tight mt-1 ${
+
+                <div className="border border-gray-900 bg-[#020308] p-3.5 rounded-sm">
+                  <span className="text-[9px] font-mono text-gray-500 uppercase tracking-widest block mb-1">Realized P&L</span>
+                  <div className={`text-xl font-mono font-bold tracking-tight ${
                     selectedPostMortem.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'
                   }`}>
                     {selectedPostMortem.pnl >= 0 ? '+' : ''}₹{selectedPostMortem.pnl.toFixed(2)}
+                    <span className="text-[10px] font-normal opacity-70 block">({selectedPostMortem.pnl_pct >= 0 ? '+' : ''}{selectedPostMortem.pnl_pct.toFixed(2)}%)</span>
                   </div>
+                </div>
+
+                <div className="border border-gray-900 bg-[#020308] p-3.5 rounded-sm">
+                  <span className="text-[9px] font-mono text-gray-500 uppercase tracking-widest block mb-1">Entry &rarr; Exit</span>
+                  <div className="text-xs font-mono text-white font-semibold mt-1">
+                    <div>₹{selectedPostMortem.entry_price?.toFixed(2)}</div>
+                    <div className="text-gray-400">&darr; ₹{selectedPostMortem.exit_price?.toFixed(2)}</div>
+                  </div>
+                </div>
+
+                <div className="border border-gray-900 bg-[#020308] p-3.5 rounded-sm">
+                  <span className="text-[9px] font-mono text-gray-500 uppercase tracking-widest block mb-1">Hold Duration</span>
+                  <div className="text-lg font-mono text-cyan-300 font-semibold mt-1">
+                    {selectedPostMortem.holding_time_mins}m
+                  </div>
+                  <span className="text-[9px] font-mono text-gray-500">{selectedPostMortem.quantity} shares</span>
                 </div>
               </div>
 
-              <div className="space-y-6">
-                <div>
-                  <div className="text-[9px] font-mono text-cyan-400 uppercase tracking-widest mb-2">AI Verdict</div>
-                  <p className="text-sm font-sans text-gray-300 leading-relaxed border-l-2 border-cyan-900 pl-4">
+              {/* Forensic Details */}
+              <div className="space-y-4 mb-6">
+                <div className="bg-[#020308] border border-gray-900 p-4 rounded-sm">
+                  <div className="text-[9px] font-mono text-cyan-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                    <Activity className="w-3 h-3 text-cyan-400" /> AI Quantitative Verdict
+                  </div>
+                  <p className="text-xs font-sans text-gray-200 leading-relaxed">
                     {selectedPostMortem.verdict}
                   </p>
                 </div>
 
-                <div>
-                  <div className="text-[9px] font-mono text-amber-400 uppercase tracking-widest mb-2">Actionable Behavioral Tip</div>
-                  <p className="text-xs font-sans text-gray-400 leading-relaxed border-l-2 border-amber-900 pl-4">
+                <div className="bg-[#020308] border border-gray-900 p-4 rounded-sm">
+                  <div className="text-[9px] font-mono text-amber-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                    <Crosshair className="w-3 h-3 text-amber-400" /> Actionable Trader Psychology Tip
+                  </div>
+                  <p className="text-xs font-sans text-gray-300 leading-relaxed">
                     {selectedPostMortem.tip}
                   </p>
                 </div>
               </div>
 
-              <div className="flex justify-between items-center text-[9px] font-mono text-gray-600 uppercase tracking-widest pt-6 mt-6 border-t border-gray-900">
-                <span>Hold: {selectedPostMortem.holding_time_mins} mins</span>
-                <span className="text-cyan-500">{selectedPostMortem.behavioral_flags?.join(' &middot; ')}</span>
+              {/* Behavioral Indicators Tags */}
+              <div className="border-t border-gray-900 pt-4 flex flex-wrap items-center justify-between gap-3 text-[10px] font-mono">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-gray-500 uppercase">Flags:</span>
+                  {selectedPostMortem.behavioral_flags?.map((flag, idx) => (
+                    <span key={idx} className="bg-cyan-950/40 border border-cyan-800/50 text-cyan-300 px-2 py-0.5 rounded text-[9px]">
+                      {flag}
+                    </span>
+                  ))}
+                </div>
+                {selectedPostMortem.counterfactual_savings && (
+                  <div className="text-emerald-400/90">
+                    Counterfactual ROI: <span className="font-bold">₹{selectedPostMortem.counterfactual_savings.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                  </div>
+                )}
               </div>
+
             </motion.div>
           </motion.div>
         )}

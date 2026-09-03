@@ -38,7 +38,10 @@ export const TradingTerminal = () => {
     coolingOffTimer,
     marketStatus,
     portfolio,
-    isDemoMode
+    isDemoMode,
+    isTiltMode,
+    tiltModeTimeLeft,
+    unlockTiltMode
   } = useTrading();
 
   const [orderSide, setOrderSide] = useState('BUY');
@@ -52,16 +55,18 @@ export const TradingTerminal = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [orderMsg, setOrderMsg] = useState(null);
 
+  const { userId, user, isAuthenticated, setIsAuthModalOpen } = useAuth();
+
   const selectedStockObj = stockList.find(s => s.symbol === selectedStock);
   const activePrice = currentQuote.price || selectedStockObj?.price || (candles?.length > 0 ? candles[candles.length - 1].close : 1500.0);
   const activeChangePct = currentQuote.change_pct !== null && currentQuote.change_pct !== undefined ? currentQuote.change_pct : (selectedStockObj?.change_pct || 0.0);
-  const execPrice = orderType === 'LIMIT' && limitPrice ? parseFloat(limitPrice) : activePrice;
+  const execPrice = orderType === 'LIMIT' && limitPrice ? parseFloat(limitPrice) : (activePrice || 1500.0);
   const totalValue = quantity * execPrice;
   const maxAffordableQty = Math.max(1, Math.floor((portfolio?.cash_balance || 100000.0) / (execPrice || 1)));
 
   const filteredStocks = stockList.filter(s => 
-    s.symbol.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    s.name.toLowerCase().includes(searchQuery.toLowerCase())
+    (s.symbol || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (s.name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleSubmitOrder = async (e) => {
@@ -69,8 +74,18 @@ export const TradingTerminal = () => {
     setSubmitting(true);
     setOrderMsg(null);
 
+    if (!isAuthenticated) {
+      setSubmitting(false);
+      setIsAuthModalOpen(true);
+      setOrderMsg({
+        type: 'info',
+        text: 'Please Sign In or Create an Account to execute live paper trades & track your portfolio.'
+      });
+      return;
+    }
+
     const orderParams = {
-      user_id: 'default_user',
+      user_id: userId || user?.user_id || 'usr_guest',
       symbol: selectedStock,
       side: orderSide,
       quantity: parseInt(quantity),
@@ -92,7 +107,7 @@ export const TradingTerminal = () => {
       } else {
         setOrderMsg({ 
           type: 'success', 
-          text: `Paper Trade Executed! (${productType} ${orderSide}) ${quantity} ${selectedStock} @ ₹${execPrice.toFixed(2)}` 
+          text: `Paper Trade Executed! (${productType} ${orderSide}) ${quantity} ${selectedStock} @ ₹${Number(execPrice).toFixed(2)}` 
         });
       }
     } else if (res?.risk_flagged) {
@@ -482,18 +497,42 @@ export const TradingTerminal = () => {
               </div>
             )}
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={submitting}
-              className={`w-full py-3 rounded-xl font-bold text-sm shadow-xl transition-all ${
-                orderSide === 'BUY'
-                  ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-emerald-500/20'
-                  : 'bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-400 hover:to-red-500 text-white shadow-rose-500/20'
-              }`}
-            >
-              {submitting ? 'Evaluating AI Risk Engine...' : (!marketStatus?.is_open || orderType === 'AMO' ? `Queue ${productType} ${orderSide} (AMO)` : `Execute ${productType} ${orderSide} Order`)}
-            </button>
+            {/* Submit Button or Tilt Mode Lock */}
+            {isTiltMode ? (
+              <div className="p-4 bg-rose-950/80 border border-rose-800 rounded-xl space-y-4 animate-pulse-slow">
+                <div className="flex items-start gap-3">
+                  <ShieldAlert className="w-6 h-6 text-rose-500 shrink-0" />
+                  <div>
+                    <h4 className="text-rose-400 font-bold text-sm">TILT MODE ACTIVATED</h4>
+                    <p className="text-xs text-rose-200 mt-1 leading-relaxed">
+                      FinAI has detected impulsive revenge trading (3+ consecutive losses with increased position sizing). Your terminal is locked to protect your capital.
+                    </p>
+                    <div className="mt-3 font-mono text-xl font-bold text-rose-300">
+                      {Math.floor(tiltModeTimeLeft / 60)}:{(tiltModeTimeLeft % 60).toString().padStart(2, '0')}
+                    </div>
+                  </div>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={unlockTiltMode}
+                  className="w-full py-2 bg-slate-900 border border-slate-700 hover:border-cyan-500/50 hover:bg-slate-800 text-cyan-400 text-xs font-bold rounded-lg transition-colors"
+                >
+                  I've completed my breathing exercise. Unlock Terminal.
+                </button>
+              </div>
+            ) : (
+              <button
+                type="submit"
+                disabled={submitting}
+                className={`w-full py-3 rounded-xl font-bold text-sm shadow-xl transition-all ${
+                  orderSide === 'BUY'
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-emerald-500/20'
+                    : 'bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-400 hover:to-red-500 text-white shadow-rose-500/20'
+                }`}
+              >
+                {submitting ? 'Evaluating AI Risk Engine...' : (!marketStatus?.is_open || orderType === 'AMO' ? `Queue ${productType} ${orderSide} (AMO)` : `Execute ${productType} ${orderSide} Order`)}
+              </button>
+            )}
 
             {orderMsg && (
               <div className={`p-3 rounded-xl text-xs flex items-center space-x-2 border ${

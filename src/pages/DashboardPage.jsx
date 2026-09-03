@@ -28,9 +28,8 @@ export const DashboardPage = () => {
   const utilizationPct = (investedAmount / totalValue) * 100;
   const cashPct = (cashAvailable / totalValue) * 100;
 
-  // Active positions derived from trades (mock implementation based on typical structure)
-  // We'll filter trades that don't have a close date/price
-  const openPositions = trades?.filter(t => t.status === 'OPEN' || !t.exit_price) || [];
+  // Active positions derived from trades
+  const openPositions = trades?.filter(t => t.status === 'EXECUTED') || [];
   
   const formatRupee = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(val || 0);
 

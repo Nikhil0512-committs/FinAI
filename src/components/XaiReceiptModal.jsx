@@ -23,6 +23,9 @@ export const XaiReceiptModal = () => {
   } = useTrading();
 
   const [selectedCitedTrade, setSelectedCitedTrade] = useState(null);
+  const [showInterrogation, setShowInterrogation] = useState(false);
+  const [stopLossAnswer, setStopLossAnswer] = useState('');
+  const [interrogationError, setInterrogationError] = useState('');
 
   if (!activeXaiReceipt) return null;
 
@@ -46,10 +49,32 @@ export const XaiReceiptModal = () => {
       quantity: Math.max(1, Math.floor(pendingTrade.quantity / 2))
     };
     await executeTradeDirectly(resizedParams, false);
+    setActiveXaiReceipt(null);
   };
 
   const handleProceedAnyway = async () => {
     await executeTradeDirectly(pendingTrade, false);
+    setActiveXaiReceipt(null);
+  };
+
+  const handleSubmitInterrogation = async () => {
+    const sl = parseFloat(stopLossAnswer);
+    if (!sl || isNaN(sl)) {
+      setInterrogationError("You must enter a valid numeric price.");
+      return;
+    }
+    const price = pendingTrade.price || 0;
+    if (pendingTrade.side === 'BUY' && sl >= price) {
+      setInterrogationError("Stop-Loss must be BELOW your entry price for a BUY order.");
+      return;
+    }
+    if (pendingTrade.side === 'SELL' && sl <= price) {
+      setInterrogationError("Stop-Loss must be ABOVE your entry price for a SELL order.");
+      return;
+    }
+    const updatedTrade = { ...pendingTrade, stop_loss: sl };
+    await executeTradeDirectly(updatedTrade, false);
+    setActiveXaiReceipt(null);
   };
 
   return (
@@ -156,7 +181,7 @@ export const XaiReceiptModal = () => {
             <div className="bg-slate-950/80 border border-rose-900/50 p-3.5 rounded-xl text-center">
               <div className="text-[11px] text-slate-400 font-semibold uppercase">Actual Portfolio P&L</div>
               <div className="font-mono text-xl font-extrabold text-rose-400 mt-1">
-                -₹{Math.abs(counterfactual?.actual_pnl || 8500).toLocaleString('en-IN')}
+                -₹{Math.abs(Number(counterfactual?.actual_pnl || 0)).toLocaleString('en-IN')}
               </div>
               <div className="text-[10px] text-rose-300/80 mt-1">Undisciplined Execution</div>
             </div>
@@ -165,7 +190,7 @@ export const XaiReceiptModal = () => {
             <div className="bg-slate-950/80 border border-emerald-800/60 p-3.5 rounded-xl text-center pulse-green">
               <div className="text-[11px] text-slate-400 font-semibold uppercase">With 20-min Cooling-off</div>
               <div className="font-mono text-xl font-extrabold text-emerald-400 mt-1">
-                +₹{counterfactual?.counterfactual_pnl?.toLocaleString('en-IN') || '14,200'}
+                +₹{Number(counterfactual?.counterfactual_pnl || 0).toLocaleString('en-IN')}
               </div>
               <div className="text-[10px] text-emerald-300/80 mt-1">Disciplined ROI</div>
             </div>
@@ -175,7 +200,7 @@ export const XaiReceiptModal = () => {
           <div className="bg-emerald-950/40 border border-emerald-800/50 p-3 rounded-xl flex items-center justify-between text-xs">
             <span className="text-slate-300 font-semibold">Net Rupee Discipline ROI:</span>
             <span className="font-mono font-extrabold text-emerald-400 text-sm">
-              +₹{counterfactual?.discipline_roi?.toLocaleString('en-IN') || '22,700'}
+              +₹{Number(counterfactual?.discipline_roi || 0).toLocaleString('en-IN')}
             </span>
           </div>
 
@@ -193,20 +218,55 @@ export const XaiReceiptModal = () => {
             <span>Accept 20-Minute Cooling-Off Pause (Recommended)</span>
           </button>
 
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={handleResizeOrder}
-              className="py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-cyan-300 font-bold text-xs rounded-xl transition-all"
-            >
-              Resize Order by 50%
-            </button>
-            <button
-              onClick={handleProceedAnyway}
-              className="py-2.5 bg-slate-900 hover:bg-slate-800 border border-rose-900/60 text-rose-400 font-bold text-xs rounded-xl transition-all"
-            >
-              Proceed Anyway (Log Risk)
-            </button>
-          </div>
+          {!showInterrogation ? (
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={handleResizeOrder}
+                className="py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-cyan-300 font-bold text-xs rounded-xl transition-all"
+              >
+                Resize Order by 50%
+              </button>
+              <button
+                onClick={() => setShowInterrogation(true)}
+                className="py-2.5 bg-slate-900 hover:bg-slate-800 border border-rose-900/60 text-rose-400 font-bold text-xs rounded-xl transition-all"
+              >
+                Proceed Anyway (Log Risk)
+              </button>
+            </div>
+          ) : (
+            <div className="mt-4 p-4 bg-slate-950 border border-rose-900/80 rounded-xl space-y-3 animate-fade-in">
+              <h4 className="text-rose-400 font-bold text-sm flex items-center gap-2">
+                <HelpCircle className="w-4 h-4" /> Pre-Trade Micro-Interrogation
+              </h4>
+              <p className="text-xs text-slate-300">
+                FinAI sees you are initiating a highly volatile trade. What is your exact Stop-Loss (Invalidation) price for this {pendingTrade?.side} trade?
+              </p>
+              
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-mono text-sm">₹</span>
+                  <input 
+                    type="number"
+                    value={stopLossAnswer}
+                    onChange={(e) => setStopLossAnswer(e.target.value)}
+                    placeholder="Enter strict stop-loss price"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 pl-7 pr-3 text-white font-mono text-sm focus:border-rose-500 focus:outline-none transition-colors"
+                  />
+                </div>
+                <button 
+                  onClick={handleSubmitInterrogation}
+                  className="bg-rose-900/50 hover:bg-rose-900 text-white font-bold py-2 px-4 rounded-lg text-xs transition-colors whitespace-nowrap"
+                >
+                  Verify & Execute
+                </button>
+              </div>
+              {interrogationError && (
+                <div className="text-[10px] text-rose-400 font-mono mt-1 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" /> {interrogationError}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
       </div>

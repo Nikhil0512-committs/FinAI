@@ -62,15 +62,18 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    setUser({ user_id: 'usr_guest', username: 'Guest Trader', email: 'guest@finai.io' });
+    setUser({ user_id: 'usr_guest', username: 'Guest Trader', email: 'guest@finai.io', isGuest: true });
     localStorage.removeItem('finai_user');
   };
+
+  const isAuthenticated = Boolean(user && user.user_id && user.user_id !== 'usr_guest' && !user.isGuest);
 
   return (
     <AuthContext.Provider
       value={{
         user,
         userId: user?.user_id || 'usr_guest',
+        isAuthenticated,
         login,
         register,
         logout,

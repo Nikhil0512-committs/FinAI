@@ -80,38 +80,38 @@ class BehavioralEngine:
             X_input = np.array([[time_gap_mins, last_pnl, position_size_ratio, volatility_20, rsi_14, macd, ret_5]])
             try:
                 probs = self.ml_model.predict_proba(X_input)[0]
-                pred_class = np.argmax(probs)
+                pred_class = int(np.argmax(probs))
                 
                 # Classes: 0: OPTIMAL, 1: REVENGE, 2: FOMO, 3: ESCALATION
                 if pred_class == 1:
                     primary_state = 'REVENGE_TRADING_HIGH_RISK'
                     has_ml_risk = True
-                    ml_summary = f"ML Model detected Revenge Trading (Probability: {probs[1]:.1%}). You recently lost money and are entering too quickly."
+                    ml_summary = f"ML Model detected Revenge Trading (Probability: {float(probs[1]):.1%}). You recently lost money and are entering too quickly."
                     flags.append({
                         'state': primary_state,
                         'title': 'Revenge Trading Triggered (ML Detected)',
                         'description': ml_summary,
-                        'z_score': round(probs[1] * 5, 2)
+                        'z_score': round(float(probs[1] * 5), 2)
                     })
                 elif pred_class == 2:
                     primary_state = 'FOMO_CHASING_RISK'
                     has_ml_risk = True
-                    ml_summary = f"ML Model detected FOMO Entry (Probability: {probs[2]:.1%}). Entering during high volatility."
+                    ml_summary = f"ML Model detected FOMO Entry (Probability: {float(probs[2]):.1%}). Entering during high volatility."
                     flags.append({
                         'state': primary_state,
                         'title': 'FOMO Entry Detected (ML)',
                         'description': ml_summary,
-                        'z_score': round(probs[2] * 5, 2)
+                        'z_score': round(float(probs[2] * 5), 2)
                     })
                 elif pred_class == 3:
                     primary_state = 'POSITION_SIZE_ESCALATION'
                     has_ml_risk = True
-                    ml_summary = f"ML Model detected Position Escalation (Probability: {probs[3]:.1%}). Averaging up or revenge sizing."
+                    ml_summary = f"ML Model detected Position Escalation (Probability: {float(probs[3]):.1%}). Averaging up or revenge sizing."
                     flags.append({
                         'state': primary_state,
                         'title': 'Aggressive Size Escalation (ML)',
                         'description': ml_summary,
-                        'z_score': round(probs[3] * 5, 2)
+                        'z_score': round(float(probs[3] * 5), 2)
                     })
             except Exception as e:
                 print(f"[BehavioralEngine] ML Prediction Error: {e}")
@@ -161,28 +161,40 @@ class BehavioralEngine:
         """
         Computes an in-depth quantitative trader psychology profile,
         analyzing behavioral biases, Z-scores, holding duration metrics, and discipline ROI.
+        Requires a minimum sample size of 6 executed trades for statistical validity.
         """
-        if not user_trades:
-            return {
-                'trade_count': 0,
-                'discipline_score': 85,
-                'archetype': 'Disciplined Baseline Trader',
-                'metrics': {
-                    'revenge_avoidance': 92,
-                    'position_control': 88,
-                    'cooling_off_ratio': 90,
-                    'holding_balance': 82,
-                    'fomo_resistance': 90,
-                    'win_rate': 0.0
-                },
-                'insights': [
-                    "Fresh portfolio baseline. Complete 5+ paper trades in the terminal to unlock deep behavioral pattern tracking."
-                ],
-                'trade_audits': []
-            }
-
-        sorted_trades = sorted(user_trades, key=lambda x: str(x.get('timestamp') or ''), reverse=True)
+        sorted_trades = sorted(user_trades or [], key=lambda x: str(x.get('timestamp') or ''), reverse=True)
         total_count = len(sorted_trades)
+
+        if total_count < 6:
+            # Trade audits for the trades placed so far
+            pre_audits = []
+            for t in sorted_trades:
+                pnl = float(t.get('pnl', 0.0))
+                pre_audits.append({
+                    'trade_code': t.get('trade_code', ''),
+                    'symbol': t.get('symbol', ''),
+                    'side': t.get('side', 'BUY'),
+                    'quantity': int(t.get('quantity', 1)),
+                    'price': float(t.get('price', 0.0)),
+                    'pnl': round(pnl, 2),
+                    'holding_time_minutes': float(t.get('holding_time_minutes', 1.0)),
+                    'status': t.get('status', 'EXECUTED')
+                })
+
+            return {
+                'profile_unlocked': False,
+                'trade_count': total_count,
+                'required_trades': 6,
+                'discipline_score': None,
+                'archetype': 'Calibrating (Statistical Baseline Required)',
+                'metrics': None,
+                'insights': [
+                    f"Sample size calibration in progress ({total_count}/6 trades logged).",
+                    "A minimum of 6 executed paper trades is required by SEBI-aligned quantitative standards to compute authentic behavioral metrics without statistical distortion."
+                ],
+                'trade_audits': pre_audits
+            }
 
         # 1. Calculate Revenge Trading Frequency
         loss_gaps = []
@@ -231,15 +243,15 @@ class BehavioralEngine:
 
         # 5. Determine Archetype
         if revenge_score < 60:
-            archetype = "Impulsive Revenge Scalper (High Turnover Bias)"
+            archetype = "Impulsive Trader (Trading Too Often)"
         elif position_control_score < 65:
-            archetype = "Martingale Size Escalator (Over-Leverage Risk)"
+            archetype = "Reckless Risk-Taker (Increasing Trade Size on Losses)"
         elif holding_score < 60:
-            archetype = "Loss-Holding HODLer (Cutting Winners Early)"
+            archetype = "Anxious Trader (Holding Losers, Selling Winners)"
         elif discipline_score >= 85:
-            archetype = "Institutional Risk Disciplinarian (Systematic Execution)"
+            archetype = "Disciplined Trader (Following the Rules)"
         else:
-            archetype = "Balanced Quantitative Trader (Steady Baseline)"
+            archetype = "Balanced Trader (Steady & Consistent)"
 
         # 6. Detailed Trade Audits
         trade_audits = []
@@ -323,8 +335,30 @@ class BehavioralEngine:
             }
         ]
 
+        # 8. Generate Layman's Summary
+        layman_brief = "In simple terms, here is how you are doing: "
+        layman_points = []
+        if revenge_count > 0:
+            layman_points.append("You tend to jump right back into the market too quickly after a losing trade, trying to immediately make your money back.")
+        else:
+            layman_points.append("You do a great job of taking a break after a losing trade instead of panic-trading.")
+            
+        if size_escalation_ratio > 1.2:
+            layman_points.append("When you lose money, you start betting larger amounts on the next trades to recover your losses. This is dangerous.")
+        else:
+            layman_points.append("You keep your bet sizes consistent, which is very safe.")
+            
+        if avg_loss_hold > avg_win_hold * 1.3:
+            layman_points.append("You hold onto your losing stocks for way too long hoping they will bounce back, but you sell your winning stocks too early.")
+        else:
+            layman_points.append("You are good at selling losing stocks quickly and letting your winning stocks run.")
+            
+        layman_brief += " ".join(layman_points)
+
         return {
+            'profile_unlocked': True,
             'trade_count': total_count,
+            'required_trades': 6,
             'discipline_score': discipline_score,
             'archetype': archetype,
             'metrics': {
@@ -339,6 +373,7 @@ class BehavioralEngine:
                 'loss_hold_mins': round(avg_loss_hold, 1)
             },
             'insights': insights,
+            'layman_brief': layman_brief,
             'improvements': improvements,
             'trade_audits': trade_audits
         }

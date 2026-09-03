@@ -28,6 +28,8 @@ export const TradingProvider = ({ children }) => {
   const [marketDataSource, setMarketDataSource] = useState('api_unavailable');
   const [marketDataError, setMarketDataError] = useState(null);
   const [loadingCandles, setLoadingCandles] = useState(false);
+  const [isTiltMode, setIsTiltMode] = useState(false);
+  const [tiltModeTimeLeft, setTiltModeTimeLeft] = useState(0);
 
   // XAI Receipt Modal State
   const [activeXaiReceipt, setActiveXaiReceipt] = useState(null);
@@ -101,15 +103,11 @@ export const TradingProvider = ({ children }) => {
       if (res.ok) {
         const data = await res.json();
         setCandles(data.candles || []);
-        if (data.latest_price !== null && data.latest_price !== undefined) {
-          setCurrentQuote((prev) => ({
-            price: data.latest_price,
-            change_pct: data.change_pct !== undefined ? data.change_pct : prev.change_pct,
-            time: data.candles?.at(-1)?.time || prev.time
-          }));
+        if (data.candles && data.candles.length > 0) {
+          // Only update market data source info, let fetchLiveQuote handle the actual price
+          setMarketDataSource(data.source || 'broker_api');
+          setMarketDataError(data.error || null);
         }
-        setMarketDataSource(data.source || 'broker_api');
-        setMarketDataError(data.error || null);
       }
     } catch (e) {
       if (e.name !== 'AbortError') {
@@ -135,7 +133,7 @@ export const TradingProvider = ({ children }) => {
           const px = parseFloat(data.price);
           const symUpper = String(symbol).toUpperCase().trim();
           livePriceCache.current[symUpper] = px;
-          setCurrentQuote({ price: px, change_pct: data.change_pct, time: data.time });
+          setCurrentQuote({ price: px, change_pct: data.change_pct, time: data.time, symbol: symUpper });
           setMarketDataSource(data.source || 'broker_api');
           setMarketDataError(null);
         }
@@ -261,29 +259,97 @@ export const TradingProvider = ({ children }) => {
     fetchLiveQuote(selectedStock);
   }, [selectedStock, timeframe]);
 
-  // Real-time live quote, portfolio, watchlist & chart candles streaming loop
+  // Institutional WebSocket Streaming Connection (Redis PubSub & Kafka Stream)
+  useEffect(() => {
+    let ws = null;
+    let reconnectTimeout = null;
+    let isMounted = true;
+
+    const connectWebSocket = () => {
+      try {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+          ? '127.0.0.1:8000'
+          : window.location.host;
+        const wsUrl = `${protocol}//${host}/ws/stream`;
+
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+          console.log('[FinAI Stream] WebSocket connection established.');
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'TICK' && data.symbol === selectedStock) {
+              const chg = data.change_pct !== undefined && data.change_pct !== null ? Number(data.change_pct) : 0.0;
+              setCurrentQuote((prev) => ({
+                ...prev,
+                price: Number(data.price),
+                change_pct: chg,
+                symbol: data.symbol
+              }));
+            } else if (data.type === 'TRADE_EXECUTED' || data.type === 'TRADE_CLOSED' || data.type === 'SL_TP_TRIGGERED') {
+              fetchTrades(userId);
+              fetchPortfolio(userId);
+            }
+          } catch (e) {
+            // Ignore parse errors
+          }
+        };
+
+        ws.onclose = () => {
+          if (isMounted) {
+            reconnectTimeout = setTimeout(connectWebSocket, 3000);
+          }
+        };
+
+        ws.onerror = () => {
+          if (ws) ws.close();
+        };
+      } catch (err) {
+        if (isMounted) {
+          reconnectTimeout = setTimeout(connectWebSocket, 3000);
+        }
+      }
+    };
+
+    connectWebSocket();
+
+    return () => {
+      isMounted = false;
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      if (ws) {
+        ws.onclose = null;
+        ws.close();
+      }
+    };
+  }, [selectedStock, userId]);
+
+  // Gentle fallback heartbeat polling
   useEffect(() => {
     const quoteInterval = setInterval(() => {
       fetchLiveQuote(selectedStock);
       fetchActivePositionQuotes();
       fetchMarketStatus();
       fetchPortfolio(userId);
-    }, 1500);
+    }, 8000);
 
     const stockListInterval = setInterval(() => {
       fetchStockList();
-    }, 15000);
+    }, 20000);
 
     const candleInterval = setInterval(() => {
       fetchCandles(selectedStock, timeframe);
-    }, 4000);
+    }, 10000);
 
     return () => {
       clearInterval(quoteInterval);
       clearInterval(stockListInterval);
       clearInterval(candleInterval);
     };
-  }, [selectedStock, timeframe, userId, trades]);
+  }, [selectedStock, timeframe, userId, trades.length]);
 
   // Cooling-off countdown handler
   useEffect(() => {
@@ -295,6 +361,22 @@ export const TradingProvider = ({ children }) => {
     }
   }, [coolingOffTimer]);
 
+  // Tilt Mode countdown handler
+  useEffect(() => {
+    if (isTiltMode && tiltModeTimeLeft > 0) {
+      const interval = setInterval(() => {
+        setTiltModeTimeLeft((prev) => {
+          if (prev <= 1) {
+            setIsTiltMode(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [isTiltMode, tiltModeTimeLeft]);
+
   const handleStockSelect = (symbol) => {
     setSelectedStock(symbol);
     fetchLiveQuote(symbol);
@@ -303,6 +385,22 @@ export const TradingProvider = ({ children }) => {
 
   // Evaluate order ticket before executing
   const handleEvaluateAndOrder = async (orderParams) => {
+    // 1. Tilt-Mode Auto-Lockdown Check (3 consecutive losses + increasing size)
+    const closedTrades = trades.filter(t => t.status === 'CLOSED').sort((a, b) => new Date(b.exit_timestamp || b.timestamp) - new Date(a.exit_timestamp || a.timestamp));
+    if (closedTrades.length >= 3) {
+      const last3 = closedTrades.slice(0, 3);
+      const allLosses = last3.every(t => parseFloat(t.pnl) < 0);
+      if (allLosses) {
+        const avgSize = last3.reduce((sum, t) => sum + (t.quantity * t.price), 0) / 3;
+        const currentSize = orderParams.quantity * orderParams.price;
+        if (currentSize > avgSize * 1.1) {
+          setIsTiltMode(true);
+          setTiltModeTimeLeft(15 * 60); // 15 minutes
+          return { success: false, error: 'TILT_MODE_ACTIVATED', message: 'Revenge Trading Detected.' };
+        }
+      }
+    }
+
     try {
       const res = await fetch('/api/trade/evaluate', {
         method: 'POST',
@@ -376,12 +474,18 @@ export const TradingProvider = ({ children }) => {
           fetchPortfolio();
           return { success: true, message: data.message };
         } else if (data.status === 'AMO_QUEUED') {
+          if (data.trade) {
+            setTrades(prev => [data.trade, ...(prev || []).filter(t => t.trade_code !== data.trade.trade_code)]);
+          }
           fetchPortfolio();
           fetchTrades();
           setActiveXaiReceipt(null);
           setPendingTrade(null);
           return { success: true, is_amo: true, message: data.message, trade: data.trade };
         } else {
+          if (data.trade) {
+            setTrades(prev => [data.trade, ...(prev || []).filter(t => t.trade_code !== data.trade.trade_code)]);
+          }
           fetchPortfolio();
           fetchTrades();
           setActiveXaiReceipt(null);
@@ -566,9 +670,17 @@ export const TradingProvider = ({ children }) => {
     };
   }, [portfolio, trades, currentQuote, stockList, selectedStock]);
 
+  const unlockTiltMode = () => {
+    setIsTiltMode(false);
+    setTiltModeTimeLeft(0);
+  };
+
   return (
     <TradingContext.Provider
       value={{
+        isTiltMode,
+        tiltModeTimeLeft,
+        unlockTiltMode,
         selectedStock,
         setSelectedStock: handleStockSelect,
         timeframe,

@@ -22,7 +22,6 @@ import {
 import { StockSelector } from '../components/StockSelector';
 
 export const TerminalPage = () => {
-  const { userId } = useAuth();
   const { 
     selectedStock, 
     setSelectedStock, 
@@ -43,17 +42,18 @@ export const TerminalPage = () => {
   const [quantity, setQuantity] = useState(25);
   const [limitPrice, setLimitPrice] = useState('');
   const [sentimentTag, setSentimentTag] = useState('Bearish Volatility');
-  const [selectedIndicator, setSelectedIndicator] = useState('SMA');
+  const [selectedIndicator, setSelectedIndicator] = useState('OFF');
   const [stopLoss, setStopLoss] = useState('');
   const [takeProfit, setTakeProfit] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const { userId, user, isAuthenticated, setIsAuthModalOpen } = useAuth();
   const [orderMsg, setOrderMsg] = useState(null);
 
   const activePrice = currentQuote.price || 1500.0;
   const execPrice = orderType === 'LIMIT' && limitPrice ? parseFloat(limitPrice) : activePrice;
   const totalValue = quantity * execPrice;
   const cashAvailable = portfolio?.cash_balance || 0;
-  const riskReward = stopLoss && takeProfit ? Math.abs((takeProfit - execPrice) / (execPrice - stopLoss)).toFixed(1) : 'N/A';
+  const riskReward = stopLoss && takeProfit && (execPrice - stopLoss) !== 0 ? Math.abs((takeProfit - execPrice) / (execPrice - stopLoss)).toFixed(1) : 'N/A';
 
   const activePositions = trades.filter(t => t.status === 'EXECUTED');
 
@@ -62,8 +62,18 @@ export const TerminalPage = () => {
     setSubmitting(true);
     setOrderMsg(null);
 
+    if (!isAuthenticated) {
+      setSubmitting(false);
+      setIsAuthModalOpen(true);
+      setOrderMsg({
+        type: 'info',
+        text: 'Please Sign In or Create an Account to execute live paper trades & track your portfolio.'
+      });
+      return;
+    }
+
     const orderParams = {
-      user_id: userId || 'usr_guest',
+      user_id: userId || user?.user_id || 'usr_guest',
       symbol: selectedStock,
       side: orderSide,
       quantity: parseInt(quantity),
@@ -79,6 +89,9 @@ export const TerminalPage = () => {
     if (res?.success) {
       setOrderMsg({ type: 'success', text: `EXECUTED: ${orderSide} ${quantity} ${selectedStock}` });
       setTimeout(() => setOrderMsg(null), 3000);
+    } else {
+      setOrderMsg({ type: 'error', text: res?.error || 'Order execution failed.' });
+      setTimeout(() => setOrderMsg(null), 4000);
     }
   };
 
@@ -124,10 +137,16 @@ export const TerminalPage = () => {
           </div>
           
           <div className="flex flex-col justify-center px-8 border-l border-gray-900 h-full">
-            <div className={`flex items-center gap-1.5 font-mono text-sm tracking-tight ${currentQuote.change_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-              {currentQuote.change_pct >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-              <span>{currentQuote.change_pct >= 0 ? '+' : ''}{currentQuote.change_pct}%</span>
-            </div>
+            {(() => {
+              const chg = currentQuote?.change_pct !== undefined && currentQuote?.change_pct !== null ? Number(currentQuote.change_pct) : 0.0;
+              const isPos = chg >= 0;
+              return (
+                <div className={`flex items-center gap-1.5 font-mono text-sm tracking-tight ${isPos ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {isPos ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                  <span>{isPos ? '+' : ''}{chg.toFixed(2)}%</span>
+                </div>
+              );
+            })()}
           </div>
 
           <div className="flex items-center justify-center px-6 border-l border-gray-900 h-full">
@@ -233,7 +252,9 @@ export const TerminalPage = () => {
                   <Line type="monotone" dataKey="ema_9" stroke="#fbbf24" strokeWidth={1} dot={false} name="EMA 9" isAnimationActive={false} />
                 )}
                 
-                <Bar dataKey="volume" yAxisId={1} fill="#1e293b" opacity={0.6} name="Volume" isAnimationActive={false} />
+                {selectedIndicator !== 'OFF' && (
+                  <Bar dataKey="volume" yAxisId={1} fill="#1e293b" opacity={0.6} name="Volume" isAnimationActive={false} />
+                )}
               </ComposedChart>
             </ResponsiveContainer>
           </div>

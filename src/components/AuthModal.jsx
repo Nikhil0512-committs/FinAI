@@ -25,6 +25,11 @@ export const AuthModal = () => {
       setLoading(false);
       if (res.success) {
         setSuccess('Logged in successfully!');
+        setTimeout(() => {
+          setIsAuthModalOpen(false);
+          setUsername('');
+          setPassword('');
+        }, 800);
       } else {
         setError(res.error);
       }
@@ -38,6 +43,12 @@ export const AuthModal = () => {
       setLoading(false);
       if (res.success) {
         setSuccess('Account registered & logged in!');
+        setTimeout(() => {
+          setIsAuthModalOpen(false);
+          setUsername('');
+          setEmail('');
+          setPassword('');
+        }, 800);
       } else {
         setError(res.error);
       }

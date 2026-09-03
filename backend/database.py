@@ -658,14 +658,11 @@ class FinAIDatabase:
             day_pct = round(((h % 200) - 95) / 50.0, 2)
 
         # Micro-pip drift: deterministic per 30-second window, within tiny +/-0.03%
-        if self.is_market_open():
-            time_bucket = int(time.time() // 30)
-            sym_seed = abs(hash(sym_upper)) % 100000
-            seed_val = int((time_bucket + sym_seed) % (2**31 - 1))
-            rng = np.random.RandomState(seed_val)
-            micro_drift = float(rng.normal(0.0, 0.0003))
-        else:
-            micro_drift = 0.0
+        time_bucket = int(time.time() // 30)
+        sym_seed = abs(hash(sym_upper)) % 100000
+        seed_val = int((time_bucket + sym_seed) % (2**31 - 1))
+        rng = np.random.RandomState(seed_val)
+        micro_drift = float(rng.normal(0.0, 0.0003))
         
         live_price = round(base_px * (1.0 + micro_drift), 2)
         change_pct = round(day_pct + (micro_drift * 5.0), 2)

@@ -8,7 +8,7 @@ import {
 import { ArrowRight, Clock, Crosshair, LayoutDashboard, TerminalSquare, BrainCircuit, History } from 'lucide-react';
 
 export const DashboardPage = () => {
-  const { portfolio, trades, disciplineScore, setSelectedStock } = useTrading();
+  const { portfolio, trades, disciplineScore, setSelectedStock, marketStatus } = useTrading();
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -56,7 +56,7 @@ export const DashboardPage = () => {
         </div>
         <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest flex items-center gap-4">
           <span>{time.toLocaleTimeString('en-US', { hour12: false })} IST</span>
-          <span className="text-emerald-400 bg-emerald-950/30 px-2 py-0.5 border border-emerald-900/50">MARKET: OPEN</span>
+          {marketStatus?.is_open ? <span className="text-emerald-400 bg-emerald-950/30 px-2 py-0.5 border border-emerald-900/50">MARKET: OPEN</span> : <span className="text-amber-400 bg-amber-950/30 px-2 py-0.5 border border-amber-900/50">MARKET: CLOSED</span>}
         </div>
       </div>
 

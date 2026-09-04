@@ -8,6 +8,7 @@ import os
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
+import threading
 
 # Path to the zip file and database files
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -24,9 +25,23 @@ class FinAIDatabase:
     def __init__(self):
         self.sqlite_conn = psycopg2.connect(os.environ.get('DATABASE_URL'), sslmode='require')
         self.sqlite_conn.autocommit = True
+        self._db_lock = threading.RLock()
         
         self._init_sqlite_tables()
         self._zip_candle_cache = {}
+
+    def _cursor(self):
+        """Thread-safe cursor context manager. Acquires _db_lock before creating a cursor."""
+        import contextlib
+        @contextlib.contextmanager
+        def _ctx():
+            with self._db_lock:
+                cur = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+                try:
+                    yield cur
+                finally:
+                    cur.close()
+        return _ctx()
         self._zip_namelist_set = None
         
         self.duck_conn = None
@@ -1177,23 +1192,26 @@ class FinAIDatabase:
 
 
     def get_portfolio(self, user_id='default_user'):
-        cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cursor.execute("SELECT * FROM portfolio WHERE user_id = %s", (user_id,))
-        row = cursor.fetchone()
-        if not row:
-            cursor.execute("INSERT INTO portfolio (user_id, cash_balance, initial_balance) VALUES (%s, 100000.0, 100000.0)", (user_id,))
-            self.sqlite_conn.commit()
-            return {'cash_balance': 100000.0, 'initial_balance': 100000.0, 'invested': 0.0, 'open_positions_value': 0.0, 'unrealized_pnl': 0.0, 'realized_pnl': 0.0, 'total_value': 100000.0, 'total_pnl': 0.0, 'open_trades_count': 0}
+        with self._db_lock:
+            cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            cursor.execute("SELECT * FROM portfolio WHERE user_id = %s", (user_id,))
+            row = cursor.fetchone()
+            if not row:
+                cursor.execute("INSERT INTO portfolio (user_id, cash_balance, initial_balance) VALUES (%s, 100000.0, 100000.0)", (user_id,))
+                self.sqlite_conn.commit()
+                cursor.close()
+                return {'cash_balance': 100000.0, 'initial_balance': 100000.0, 'invested': 0.0, 'open_positions_value': 0.0, 'unrealized_pnl': 0.0, 'realized_pnl': 0.0, 'total_value': 100000.0, 'total_pnl': 0.0, 'open_trades_count': 0}
+                
+            cash = float(row['cash_balance'])
+            initial = float(row['initial_balance'])
             
-        cash = float(row['cash_balance'])
-        initial = float(row['initial_balance'])
-        
-        cursor.execute("SELECT SUM(pnl) FROM trades WHERE user_id = %s AND status = 'CLOSED'", (user_id,))
-        realized_row = cursor.fetchone()
-        realized_pnl = float(realized_row[0]) if (realized_row and realized_row[0] is not None) else 0.0
+            cursor.execute("SELECT SUM(pnl) FROM trades WHERE user_id = %s AND status = 'CLOSED'", (user_id,))
+            realized_row = cursor.fetchone()
+            realized_pnl = float(realized_row[0]) if (realized_row and realized_row[0] is not None) else 0.0
 
-        cursor.execute("SELECT * FROM trades WHERE user_id = %s AND status = 'EXECUTED'", (user_id,))
-        open_trades = [dict(t) for t in cursor.fetchall()]
+            cursor.execute("SELECT * FROM trades WHERE user_id = %s AND status = 'EXECUTED'", (user_id,))
+            open_trades = [dict(t) for t in cursor.fetchall()]
+            cursor.close()
         
         invested = 0.0
         open_positions_market_val = 0.0
@@ -1236,43 +1254,49 @@ class FinAIDatabase:
 
     def register_user(self, username, email, password):
         import hashlib
-        cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         username_clean = username.strip()
         email_clean = email.strip().lower()
         password_hash = hashlib.sha256(password.encode()).hexdigest()
         user_id = f"usr_{hashlib.md5(username_clean.lower().encode()).hexdigest()[:10]}"
 
-        try:
-            cursor.execute("""
-                INSERT INTO users (user_id, username, email, password_hash)
-                VALUES (%s, %s, %s, %s)
-            """, (user_id, username_clean, email_clean, password_hash))
-            
-            # Initialize portfolio with 100,000 INR baseline
-            cursor.execute("""
-                INSERT INTO portfolio (user_id, cash_balance, initial_balance) VALUES (%s, 100000.0, 100000.0) ON CONFLICT (user_id) DO NOTHING
-            """, (user_id,))
+        with self._db_lock:
+            cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            try:
+                cursor.execute("""
+                    INSERT INTO users (user_id, username, email, password_hash)
+                    VALUES (%s, %s, %s, %s)
+                """, (user_id, username_clean, email_clean, password_hash))
+                
+                # Initialize portfolio with 100,000 INR baseline
+                cursor.execute("""
+                    INSERT INTO portfolio (user_id, cash_balance, initial_balance) VALUES (%s, 100000.0, 100000.0) ON CONFLICT (user_id) DO NOTHING
+                """, (user_id,))
 
-            self.sqlite_conn.commit()
-            return {'user_id': user_id, 'username': username_clean, 'email': email_clean}
-        except psycopg2.IntegrityError:
-            raise ValueError("Username or Email already registered.")
+                self.sqlite_conn.commit()
+                cursor.close()
+                return {'user_id': user_id, 'username': username_clean, 'email': email_clean}
+            except psycopg2.IntegrityError:
+                cursor.close()
+                raise ValueError("Username or Email already registered.")
 
     def authenticate_user(self, username, password):
         import hashlib
-        cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         username_clean = username.strip()
         password_hash = hashlib.sha256(password.encode()).hexdigest()
 
-        cursor.execute("""
-            SELECT * FROM users WHERE (username = %s OR email = %s) AND password_hash = %s
-        """, (username_clean, username_clean.lower(), password_hash))
-        row = cursor.fetchone()
+        with self._db_lock:
+            cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            cursor.execute("""
+                SELECT * FROM users WHERE (username = %s OR email = %s) AND password_hash = %s
+            """, (username_clean, username_clean.lower(), password_hash))
+            row = cursor.fetchone()
+            cursor.close()
         if not row:
             raise ValueError("Invalid username or password.")
         return {'user_id': row['user_id'], 'username': row['username'], 'email': row['email']}
 
     def execute_paper_trade(self, user_id, symbol, side, quantity, price, sentiment_tag='Neutral', product_type='DELIVERY', order_type='MARKET', stop_loss=None, take_profit=None, market_features=None):
+      with self._db_lock:
         cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         cursor.execute("INSERT INTO portfolio (user_id, cash_balance, initial_balance) VALUES (%s, 100000.0, 100000.0) ON CONFLICT (user_id) DO NOTHING", (user_id,))
         symbol_upper = symbol.upper().strip()
@@ -1394,9 +1418,11 @@ class FinAIDatabase:
 
     def process_sl_tp_triggers(self):
         """Scans all active EXECUTED trades and automatically triggers SL/TP square-offs."""
-        cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cursor.execute("SELECT * FROM trades WHERE status = 'EXECUTED' AND (stop_loss IS NOT NULL OR take_profit IS NOT NULL)")
-        open_trades = [dict(r) for r in cursor.fetchall()]
+        with self._db_lock:
+            cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            cursor.execute("SELECT * FROM trades WHERE status = 'EXECUTED' AND (stop_loss IS NOT NULL OR take_profit IS NOT NULL)")
+            open_trades = [dict(r) for r in cursor.fetchall()]
+            cursor.close()
 
         triggered = []
         for t in open_trades:
@@ -1434,8 +1460,11 @@ class FinAIDatabase:
             if hit_trigger and exit_px:
                 try:
                     closed = self.close_paper_trade(t['trade_code'], exit_price=exit_px)
-                    cursor.execute("UPDATE trades SET trigger_type = %s WHERE trade_code = %s", (hit_trigger, t['trade_code']))
-                    self.sqlite_conn.commit()
+                    with self._db_lock:
+                        cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+                        cursor.execute("UPDATE trades SET trigger_type = %s WHERE trade_code = %s", (hit_trigger, t['trade_code']))
+                        self.sqlite_conn.commit()
+                        cursor.close()
                     triggered.append({'trade_code': t['trade_code'], 'trigger': hit_trigger, 'price': exit_px})
                 except Exception as e:
                     print(f"[SL/TP Error] Failed auto square-off for {t['trade_code']}: {e}")
@@ -1490,6 +1519,7 @@ class FinAIDatabase:
                     print(f"[FinAI EOD Error] Failed to auto square-off trade {t['trade_code']}: {e}")
 
     def close_paper_trade(self, trade_code, exit_price=None):
+      with self._db_lock:
         cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         cursor.execute("SELECT * FROM trades WHERE trade_code = %s", (trade_code,))
         t = cursor.fetchone()
@@ -1542,35 +1572,47 @@ class FinAIDatabase:
         return self.get_trade_by_code(trade_code)
 
     def get_trade_history(self, user_id='default_user'):
-        cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cursor.execute("SELECT * FROM trades WHERE user_id = %s ORDER BY id DESC", (user_id,))
-        return [dict(r) for r in cursor.fetchall()]
+        with self._db_lock:
+            cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            cursor.execute("SELECT * FROM trades WHERE user_id = %s ORDER BY id DESC", (user_id,))
+            result = [dict(r) for r in cursor.fetchall()]
+            cursor.close()
+        return result
 
     def get_trade_count(self, user_id='default_user'):
-        cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cursor.execute("SELECT COUNT(*) FROM trades WHERE user_id = %s", (user_id,))
-        row = cursor.fetchone()
+        with self._db_lock:
+            cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            cursor.execute("SELECT COUNT(*) FROM trades WHERE user_id = %s", (user_id,))
+            row = cursor.fetchone()
+            cursor.close()
         return row[0] if row else 0
 
     def get_trade_by_code(self, trade_code):
-        cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cursor.execute("SELECT * FROM trades WHERE trade_code = %s", (trade_code,))
-        row = cursor.fetchone()
+        with self._db_lock:
+            cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            cursor.execute("SELECT * FROM trades WHERE trade_code = %s", (trade_code,))
+            row = cursor.fetchone()
+            cursor.close()
         return dict(row) if row else None
 
     # API Keys Management
     def save_api_key(self, key_name, key_value):
-        cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cursor.execute("""
-            INSERT INTO api_keys (key_name, key_value, updated_at)
-            VALUES (%s, %s, CURRENT_TIMESTAMP)
-            ON CONFLICT(key_name) DO UPDATE SET key_value = excluded.key_value, updated_at = CURRENT_TIMESTAMP
-        """, (key_name, key_value))
-        self.sqlite_conn.commit()
+        with self._db_lock:
+            cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            cursor.execute("""
+                INSERT INTO api_keys (key_name, key_value, updated_at)
+                VALUES (%s, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT(key_name) DO UPDATE SET key_value = excluded.key_value, updated_at = CURRENT_TIMESTAMP
+            """, (key_name, key_value))
+            self.sqlite_conn.commit()
+            cursor.close()
 
     def get_api_keys(self):
-        cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cursor.execute("SELECT key_name, key_value FROM api_keys")
-        return {r[0]: r[1] for r in cursor.fetchall()}
+        with self._db_lock:
+            cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            cursor.execute("SELECT key_name, key_value FROM api_keys")
+            result = {r[0]: r[1] for r in cursor.fetchall()}
+            cursor.close()
+        return result
 
 db = FinAIDatabase()

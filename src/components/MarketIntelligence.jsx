@@ -183,8 +183,9 @@ export const MarketIntelligence = () => {
     }
   };
 
-  const activePrice = currentQuote.price || (candlesData?.length ? candlesData[candlesData.length - 1].close : 1500);
-  const activeChangePct = currentQuote.change_pct || 0;
+  const matchedStock = stockList.find(s => s.symbol === selectedStock);
+  const activePrice = currentQuote.price || (candlesData?.length ? candlesData[candlesData.length - 1].close : (matchedStock?.price || 0));
+  const activeChangePct = (currentQuote.price ? currentQuote.change_pct : (matchedStock?.change_pct ?? currentQuote.change_pct)) || 0;
   
   // Real Prediction Output
   const predData = intelData?.prediction || {};

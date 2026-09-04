@@ -193,7 +193,7 @@ class ApiKeysPayload(BaseModel):
 @app.get("/api/health")
 def health_check():
     keys = db.get_api_keys()
-    gemini_active = bool(keys.get('gemini_api_key'))
+    gemini_active = bool(keys.get('gemini_api_key') or os.environ.get('GEMINI_API_KEY'))
     fyers_active = bool(keys.get('fyers_app_id') and keys.get('fyers_access_token'))
     dhan_active = bool(keys.get('dhan_client_id') and keys.get('dhan_access_token'))
     return {
@@ -309,7 +309,7 @@ def evaluate_trade(req: EvaluateTradeRequest):
     risk_eval = behavioral_engine.evaluate_trade_risk(history, pending, market_features=market_features)
     
     keys = db.get_api_keys()
-    gemini_key = keys.get('gemini_api_key')
+    gemini_key = keys.get('gemini_api_key') or os.environ.get('GEMINI_API_KEY')
 
     xai_receipt = None
     if risk_eval['has_risk']:
@@ -422,7 +422,7 @@ def get_prediction(symbol: str, timeframe: str = '1d'):
 def get_market_intelligence(symbol: str):
     sym = symbol.upper().strip()
     keys = db.get_api_keys()
-    gemini_key = keys.get('gemini_api_key')
+    gemini_key = keys.get('gemini_api_key') or os.environ.get('GEMINI_API_KEY')
     candle_data = db.get_stock_candles(sym, timeframe='5m', limit=60)
     data = rag_engine.get_market_intelligence(sym, gemini_api_key=gemini_key, candle_data=candle_data)
     

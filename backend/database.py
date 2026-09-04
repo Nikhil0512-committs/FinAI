@@ -558,7 +558,7 @@ class FinAIDatabase:
         'TATAMOTORS': {'base': 965.80,  'day_pct': 1.15, 'name': 'Tata Motors Passenger Vehicles Ltd.', 'sector': 'Automotive & EV'},
         'SBIN':       {'base': 820.50,  'day_pct': 0.35, 'name': 'State Bank of India', 'sector': 'Public Banking & Financials'},
         'BHARTIARTL': {'base': 1580.00, 'day_pct': 0.90, 'name': 'Bharti Airtel Ltd.', 'sector': 'Telecommunications'},
-        'ITC':        {'base': 485.60,  'day_pct': -0.25, 'name': 'ITC Ltd.', 'sector': 'FMCG & Diversified'},
+        'ITC':        {'base': 264.10,  'day_pct': -0.25, 'name': 'ITC Ltd.', 'sector': 'FMCG & Diversified'},
         'LT':         {'base': 3650.00, 'day_pct': 0.55, 'name': 'Larsen & Toubro Ltd.', 'sector': 'Infrastructure & Engineering'},
         'KOTAKBANK':  {'base': 1780.00, 'day_pct': -0.40, 'name': 'Kotak Mahindra Bank Ltd.', 'sector': 'Banking & Financials'},
         'HINDUNILVR': {'base': 2480.00, 'day_pct': 0.15, 'name': 'Hindustan Unilever Ltd.', 'sector': 'Consumer Goods (FMCG)'},
@@ -800,10 +800,6 @@ class FinAIDatabase:
         if df is None or df.empty:
             print(f"[FinAI Database] WARNING: No candle data found for {sym_upper} and fallback dataset is missing. Generating synthetic fallback data.")
             # Generate synthetic random walk so the chart doesn't break
-            import pandas as pd
-            import numpy as np
-            from datetime import timedelta
-            
             end_time = datetime.now()
             start_time = end_time - timedelta(days=5)
             date_rng = pd.date_range(start=start_time, end=end_time, freq='5min')

@@ -98,7 +98,7 @@ export const TradingProvider = ({ children }) => {
   const fetchCandles = async (symbol, tf = timeframe) => {
     setLoadingCandles(true);
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
     try {
       const res = await fetch(`${API_BASE}/api/candles/${encodeURIComponent(symbol)}?timeframe=${tf}`, {
         signal: controller.signal

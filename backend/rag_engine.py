@@ -98,13 +98,20 @@ class RAGEngine:
         avg_score = sum([item['score'] for item in news_items]) / max(len(news_items), 1)
         base_ai_score = int(50 + (avg_score * 40))
 
-        latest_price = 1500.0
+        latest_price = None
         latest_metrics = {}
         if candle_data:
             if candle_data.get('latest_price'):
                 latest_price = float(candle_data['latest_price'])
             if candle_data.get('latest_metrics'):
                 latest_metrics = candle_data['latest_metrics']
+
+        if not latest_price:
+            try:
+                from database import db
+                latest_price = db.get_symbol_live_price(symbol_upper)
+            except Exception:
+                latest_price = 1500.0
 
         # Ground directional stance in technical indicators (RSI, MACD crossover, price action)
         change_pct = float(candle_data.get('change_pct', 0.0)) if candle_data else 0.0

@@ -336,7 +336,7 @@ class BehavioralEngine:
                 'current_value': 'Dynamic Rule',
                 'target_value': 'Strict Execution',
                 'status': 'NEEDS_IMPROVEMENT' if discipline_score < 80 else 'OPTIMAL',
-                'recommendation': f"Rule 1: Trade size must be under ₹{int(avg_size)}. Rule 2: Do not trade outside of {best_tod} session. Rule 3: Wait for pullbacks if RSI is above 70.",
+                'recommendation': f"Rule 1: Trade size must be under Rs. {int(avg_size)}. Rule 2: Do not trade outside of {best_tod} session. Rule 3: Wait for pullbacks if RSI is above 70.",
                 'rupee_impact': round(avg_loss_pnl * 1.5, 1)
             },
             {

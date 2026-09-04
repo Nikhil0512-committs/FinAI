@@ -1592,9 +1592,20 @@ class FinAIDatabase:
         return row[0] if row else 0
 
     def get_trade_by_code(self, trade_code):
+        if not trade_code:
+            return None
+        clean = str(trade_code).strip()
+        num_clean = clean.upper().replace('T-C-', '').replace('T-', '').strip()
         with self._db_lock:
             cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-            cursor.execute("SELECT * FROM trades WHERE trade_code = %s", (trade_code,))
+            cursor.execute("""
+                SELECT * FROM trades 
+                WHERE trade_code = %s 
+                   OR UPPER(trade_code) = UPPER(%s) 
+                   OR trade_code ILIKE %s 
+                   OR CAST(id AS TEXT) = %s
+                ORDER BY id DESC LIMIT 1
+            """, (clean, clean, f"%{clean}%", num_clean))
             row = cursor.fetchone()
             cursor.close()
         return dict(row) if row else None

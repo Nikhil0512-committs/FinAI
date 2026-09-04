@@ -1,6 +1,9 @@
 import asyncio
+import os
 import json
 import uvicorn
+import psycopg2
+import psycopg2.extras
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -630,21 +633,41 @@ def get_trade_post_mortem(req: PostMortemRequest):
     code_clean = req.trade_code.strip()
     t = db.get_trade_by_code(code_clean)
     if not t:
-        cursor = db.sqlite_conn.cursor()
-        cursor.execute("SELECT * FROM trades WHERE trade_code LIKE %s OR CAST(id AS TEXT) = %s ORDER BY id DESC LIMIT 1", (f"%%{code_clean}%%", code_clean.replace('T-', '')))
-        row = cursor.fetchone()
-        if row:
-            t = dict(row)
-        else:
-            raise HTTPException(status_code=404, detail=f"Trade {req.trade_code} not found")
+        with db._db_lock:
+            cursor = db.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            num_clean = code_clean.upper().replace('T-C-', '').replace('T-', '').strip()
+            cursor.execute("SELECT * FROM trades WHERE trade_code ILIKE %s OR CAST(id AS TEXT) = %s ORDER BY id DESC LIMIT 1", (f"%{code_clean}%", num_clean))
+            row = cursor.fetchone()
+            if row:
+                t = dict(row)
+            cursor.close()
+
+    if not t:
+        raise HTTPException(status_code=404, detail=f"Trade {req.trade_code} not found")
+
+    def _to_f(val, default=0.0):
+        if val is None:
+            return default
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            return default
+
+    def _to_i(val, default=1):
+        if val is None:
+            return default
+        try:
+            return int(val)
+        except (ValueError, TypeError):
+            return default
         
-    symbol = t.get('symbol', 'EQUITY')
-    side = t.get('side', 'BUY')
-    qty = int(t.get('quantity', 1))
-    entry_price = float(t.get('price', 100.0))
-    status = t.get('status', 'CLOSED')
-    total_val = float(t.get('total_value', qty * entry_price))
-    holding_mins = float(t.get('holding_time_minutes', 1.0))
+    symbol = t.get('symbol') or 'EQUITY'
+    side = (t.get('side') or 'BUY').upper().strip()
+    qty = _to_i(t.get('quantity'), 1)
+    entry_price = _to_f(t.get('price'), 100.0)
+    status = t.get('status') or 'CLOSED'
+    total_val = _to_f(t.get('total_value'), qty * entry_price)
+    holding_mins = max(1.0, _to_f(t.get('holding_time_minutes'), 1.0))
     
     if status == 'EXECUTED':
         live_px = db.get_symbol_live_price(symbol) or entry_price
@@ -654,8 +677,9 @@ def get_trade_post_mortem(req: PostMortemRequest):
         else:
             pnl = (entry_price - live_px) * qty
     else:
-        exit_price = float(t.get('exit_price') or entry_price)
-        pnl = float(t.get('pnl', (exit_price - entry_price) * qty if side == 'BUY' else (entry_price - exit_price) * qty))
+        exit_price = _to_f(t.get('exit_price'), entry_price)
+        calc_pnl = (exit_price - entry_price) * qty if side == 'BUY' else (entry_price - exit_price) * qty
+        pnl = _to_f(t.get('pnl'), calc_pnl)
 
     pnl_pct = (pnl / (total_val + 1e-8)) * 100.0
     
@@ -693,7 +717,7 @@ def get_trade_post_mortem(req: PostMortemRequest):
         tip = f"Position size (₹{total_val:,.2f}) was too large for market volatility. Avoid re-entering immediately after a loss."
 
     keys = db.get_api_keys()
-    gemini_key = keys.get('gemini_api_key')
+    gemini_key = keys.get('gemini_api_key') or os.environ.get('GEMINI_API_KEY')
     
     ai_insights = None
     try:
@@ -702,7 +726,7 @@ def get_trade_post_mortem(req: PostMortemRequest):
             trade_history=[t],
             pending_trade={'symbol': symbol, 'side': side, 'quantity': qty, 'price': entry_price},
             gemini_api_key=gemini_key,
-            use_llm=False
+            use_llm=bool(gemini_key)
         )
     except Exception as e:
         print(f"[PostMortem] AI receipt fallback: {e}")
@@ -710,7 +734,7 @@ def get_trade_post_mortem(req: PostMortemRequest):
     counterfactual_savings = round(abs(pnl) * 1.5 + 500, 2) if pnl < 0 else round(pnl * 1.25, 2)
 
     return {
-        'trade_code': t.get('trade_code', req.trade_code),
+        'trade_code': t.get('trade_code') or req.trade_code,
         'symbol': symbol,
         'side': side,
         'quantity': qty,
@@ -727,8 +751,8 @@ def get_trade_post_mortem(req: PostMortemRequest):
         'counterfactual_savings': counterfactual_savings,
         'ai_insights': ai_insights,
         'status': status,
-        'timestamp': str(t.get('timestamp', '')),
-        'exit_timestamp': str(t.get('exit_timestamp', ''))
+        'timestamp': str(t.get('timestamp') or ''),
+        'exit_timestamp': str(t.get('exit_timestamp') or '')
     }
 
 if __name__ == "__main__":

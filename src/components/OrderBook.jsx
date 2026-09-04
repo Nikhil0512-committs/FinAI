@@ -596,25 +596,25 @@ export const OrderBook = () => {
                 <div className="border border-gray-900 bg-[#020308] p-3.5 rounded-sm">
                   <span className="text-[9px] font-mono text-gray-500 uppercase tracking-widest block mb-1">Realized P&L</span>
                   <div className={`text-xl font-mono font-bold tracking-tight ${
-                    selectedPostMortem.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                    (selectedPostMortem.pnl || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'
                   }`}>
-                    {selectedPostMortem.pnl >= 0 ? '+' : ''}₹{selectedPostMortem.pnl.toFixed(2)}
-                    <span className="text-[10px] font-normal opacity-70 block">({selectedPostMortem.pnl_pct >= 0 ? '+' : ''}{selectedPostMortem.pnl_pct.toFixed(2)}%)</span>
+                    {(selectedPostMortem.pnl || 0) >= 0 ? '+' : ''}₹{Number(selectedPostMortem.pnl || 0).toFixed(2)}
+                    <span className="text-[10px] font-normal opacity-70 block">({(selectedPostMortem.pnl_pct || 0) >= 0 ? '+' : ''}{Number(selectedPostMortem.pnl_pct || 0).toFixed(2)}%)</span>
                   </div>
                 </div>
 
                 <div className="border border-gray-900 bg-[#020308] p-3.5 rounded-sm">
                   <span className="text-[9px] font-mono text-gray-500 uppercase tracking-widest block mb-1">Entry &rarr; Exit</span>
                   <div className="text-xs font-mono text-white font-semibold mt-1">
-                    <div>₹{selectedPostMortem.entry_price?.toFixed(2)}</div>
-                    <div className="text-gray-400">&darr; ₹{selectedPostMortem.exit_price?.toFixed(2)}</div>
+                    <div>₹{Number(selectedPostMortem.entry_price || 0).toFixed(2)}</div>
+                    <div className="text-gray-400">&darr; ₹{Number(selectedPostMortem.exit_price || 0).toFixed(2)}</div>
                   </div>
                 </div>
 
                 <div className="border border-gray-900 bg-[#020308] p-3.5 rounded-sm">
                   <span className="text-[9px] font-mono text-gray-500 uppercase tracking-widest block mb-1">Hold Duration</span>
                   <div className="text-lg font-mono text-cyan-300 font-semibold mt-1">
-                    {selectedPostMortem.holding_time_mins}m
+                    {Number(selectedPostMortem.holding_time_mins || 1).toFixed(0)}m
                   </div>
                   <span className="text-[9px] font-mono text-gray-500">{selectedPostMortem.quantity} shares</span>
                 </div>
@@ -639,6 +639,24 @@ export const OrderBook = () => {
                     {selectedPostMortem.tip}
                   </p>
                 </div>
+
+                {selectedPostMortem.ai_insights && (selectedPostMortem.ai_insights.explanation || selectedPostMortem.ai_insights.recommendation) && (
+                  <div className="bg-[#040714] border border-cyan-900/40 p-4 rounded-sm">
+                    <div className="text-[9px] font-mono text-cyan-300 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                      <ShieldCheck className="w-3 h-3 text-cyan-400" /> {selectedPostMortem.ai_insights.title || "AI Behavioral Forensic Audit"}
+                    </div>
+                    {selectedPostMortem.ai_insights.explanation && (
+                      <p className="text-xs font-sans text-gray-300 leading-relaxed mb-2">
+                        {selectedPostMortem.ai_insights.explanation}
+                      </p>
+                    )}
+                    {selectedPostMortem.ai_insights.recommendation && (
+                      <div className="text-[11px] font-sans text-cyan-200/90 bg-cyan-950/30 border border-cyan-900/30 px-2.5 py-1.5 rounded-sm">
+                        <span className="font-semibold text-cyan-300">Action: </span>{selectedPostMortem.ai_insights.recommendation}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Behavioral Indicators Tags */}

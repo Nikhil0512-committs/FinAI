@@ -380,10 +380,10 @@ export const BehavioralScorecard = () => {
                   <div className="absolute top-1/2 left-[20%] -translate-x-1/2 -translate-y-1/2 w-1.5 h-3 bg-gray-600" />
                   <div className="absolute top-1/2 left-[40%] -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-cyan-400 rounded-full border border-[#050811]" />
                 </div>
-                <div className="flex justify-between text-[10px] font-mono mt-3 text-gray-500 uppercase tracking-widest">
+                <div className="relative w-full h-4 mt-3 text-[10px] font-mono text-gray-500 uppercase tracking-widest">
                   <span className="absolute left-[20%] -translate-x-1/2 text-gray-400">1.00x Base</span>
                   <span className="absolute left-[40%] -translate-x-1/2 text-cyan-400">Your Size</span>
-                  <span>1.50x+ Danger</span>
+                  <span className="absolute right-0">1.50x+ Danger</span>
                 </div>
               </div>
             </div>

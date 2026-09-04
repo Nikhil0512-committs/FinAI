@@ -11,10 +11,10 @@ class YFinanceEngine:
         self.source = 'yahoo_finance'
         self._candle_cache = {}
         self._quote_cache = {}
+        self._individual_quote_cache = {}
         self._cache_ttl = 300  # 300 seconds (5 min) TTL for candles
         self._quote_ttl = 60   # 60 seconds TTL for live quotes to prevent rate limits
         self._executor = ThreadPoolExecutor(max_workers=4)
-        self.session = requests.Session()
 
     def _get_yf_symbol(self, symbol):
         """Converts Indian NSE symbol to Yahoo Finance symbol."""
@@ -23,7 +23,7 @@ class YFinanceEngine:
             'TATAMOTORS': 'TMPV',
             'ZOMATO': 'ETERNAL',
             'BOB': 'BANKBARODA',
-            'M': 'M&M',
+            'M&M': 'M&M',
             'MM': 'M&M',
             'MMFIN': 'M&MFIN',
             'L&TFH': 'LTF',
@@ -31,11 +31,14 @@ class YFinanceEngine:
             'JUBILANT': 'JUBLFOOD',
             'DATAPATNS': 'DATAPATTNS',
             'AMARAJABAT': 'ARE&M',
-            'GLOBAL': 'GLOBALHEALTH',
-            'PARAS': 'PARASDEF',
+            'GLOBAL': 'MEDANTA',
+            'GLOBALHEALTH': 'MEDANTA',
+            'PARAS': 'PARAS',
+            'PARASDEF': 'PARAS',
             'GMRINFRA': 'GMRAIRPORT',
             'PTC': 'PTCIL',
             'PHENIXLTD': 'PHOENIXLTD',
+            'SUVENPHAR': 'SUVEN',
         }
         if sym_upper in aliases:
             sym_upper = aliases[sym_upper]
@@ -43,11 +46,11 @@ class YFinanceEngine:
             return sym_upper
         return f"{sym_upper}.NS"
 
-    def _safe_yf_download(self, symbols, period="1d", interval="5m", timeout=1.5):
-        """Safely fetch from yfinance with strict timeout execution to prevent server locks."""
+    def _safe_yf_download(self, symbols, period="1d", interval="5m", timeout=15.0):
+        """Safely fetch from yfinance with timeout execution to prevent server locks."""
         def download_job():
             try:
-                return yf.download(symbols, period=period, interval=interval, progress=False, threads=False, session=self.session)
+                return yf.download(symbols, period=period, interval=interval, progress=False, threads=True)
             except Exception:
                 return None
 
@@ -70,7 +73,7 @@ class YFinanceEngine:
     def _get_fast_quote(self, yf_sym: str):
         """Tier 1: yf.Ticker.fast_info — near real-time, no heavy download."""
         try:
-            tk = yf.Ticker(yf_sym, session=self.session)
+            tk = yf.Ticker(yf_sym)
             fi = tk.fast_info
             price = getattr(fi, 'last_price', None)
             prev  = getattr(fi, 'previous_close', None)
@@ -122,28 +125,34 @@ class YFinanceEngine:
 
     def get_live_quotes(self, symbols):
         """
-        Fetch live quotes for NSE symbols with 3-tier price sourcing:
-          1. fast_info  (near real-time, ~instant)
-          2. 1m intraday (current session tick)
-          3. 5d/1d daily (last close fallback)
-        Results are cached for _quote_ttl seconds.
+        Fetch real-time live quotes for NSE symbols.
+        Uses fast individual caching (<0.01ms), Ticker fast_info for single-stock lookups (~0.3s),
+        and yf.download batch mode for multi-stock snapshots without hitting rate limits.
         """
         if not symbols:
             return []
 
-        now_ts  = time.time()
-        sym_key = ",".join(sorted([s.upper().strip() for s in symbols]))
+        now_ts = time.time()
+        results = []
+        missing_symbols = []
 
-        if sym_key in self._quote_cache:
-            cached_quotes, cached_ts = self._quote_cache[sym_key]
-            if now_ts - cached_ts < self._quote_ttl:
-                return cached_quotes
+        # 1. Check individual cache first
+        for s in symbols:
+            clean = s.upper().strip()
+            if clean in self._individual_quote_cache:
+                cached_q, cached_ts = self._individual_quote_cache[clean]
+                if now_ts - cached_ts < self._quote_ttl:
+                    results.append(cached_q)
+                    continue
+            missing_symbols.append(clean)
 
-        quotes = []
-        for original_symbol in symbols:
-            yf_sym = self._get_yf_symbol(original_symbol)
-            raw    = None
+        if not missing_symbols:
+            return results
 
+        # 2. Single symbol lookup: use fast_info or intraday download
+        if len(missing_symbols) == 1:
+            sym = missing_symbols[0]
+            yf_sym = self._get_yf_symbol(sym)
             raw = self._get_fast_quote(yf_sym)
             if raw is None:
                 raw = self._get_intraday_quote(yf_sym)
@@ -151,22 +160,61 @@ class YFinanceEngine:
                 raw = self._get_daily_fallback_quote(yf_sym)
 
             if raw and raw['price'] > 0:
-                price      = round(raw['price'], 2)
-                prev_close = raw['prev_close']
-                change_pct = 0.0
-                if prev_close and prev_close > 0:
-                    change_pct = round(((price - prev_close) / prev_close) * 100.0, 2)
-                quotes.append({
-                    'symbol':     original_symbol.upper(),
-                    'price':      price,
-                    'change_pct': change_pct,
-                    'source':     self.source,
-                    'time':       datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                })
+                price = round(raw['price'], 2)
+                prev = raw.get('prev_close') or price
+                chg = round(((price - prev) / prev) * 100.0, 2) if prev > 0 else 0.0
+                q = {
+                    'symbol': sym,
+                    'price': price,
+                    'prev_close': round(prev, 2),
+                    'change_pct': chg,
+                    'source': self.source,
+                    'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                }
+                self._individual_quote_cache[sym] = (q, now_ts)
+                results.append(q)
+            return results
 
-        if quotes:
-            self._quote_cache[sym_key] = (quotes, now_ts)
-        return quotes
+        # 3. Multi-symbol batch lookup: fetch all in ONE request
+        sym_map = {}
+        yf_syms = []
+        for s in missing_symbols:
+            yf_s = self._get_yf_symbol(s)
+            sym_map[yf_s] = s
+            yf_syms.append(yf_s)
+
+        try:
+            df = self._safe_yf_download(yf_syms, period="5d", interval="1d", timeout=15.0)
+            if df is not None and not df.empty:
+                if isinstance(df.columns, pd.MultiIndex):
+                    close_df = df.get('Close')
+                else:
+                    close_df = df[['Close']] if 'Close' in df.columns else None
+                    if close_df is not None and len(yf_syms) == 1:
+                        close_df.columns = [yf_syms[0]]
+
+                if close_df is not None and not close_df.empty:
+                    for yf_s, orig_s in sym_map.items():
+                        if yf_s in close_df.columns:
+                            series = close_df[yf_s].dropna()
+                            if len(series) >= 1:
+                                curr = float(series.iloc[-1].item() if hasattr(series.iloc[-1], 'item') else series.iloc[-1])
+                                prev = float(series.iloc[-2].item() if hasattr(series.iloc[-2], 'item') else series.iloc[-2]) if len(series) >= 2 else curr
+                                chg = round(((curr - prev) / prev) * 100.0, 2) if prev > 0 else 0.0
+                                q = {
+                                    'symbol': orig_s,
+                                    'price': round(curr, 2),
+                                    'prev_close': round(prev, 2),
+                                    'change_pct': chg,
+                                    'source': self.source,
+                                    'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                }
+                                self._individual_quote_cache[orig_s] = (q, now_ts)
+                                results.append(q)
+        except Exception as e:
+            print(f"[YFinanceEngine] Batch download exception: {e}")
+
+        return results
 
     def get_candles(self, symbol, timeframe='5m', limit=200):
         """Fetch historical candles from yfinance with 300s cache and timeout safety."""

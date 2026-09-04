@@ -73,23 +73,25 @@ export const TradingProvider = ({ children }) => {
       const res = await fetch(`${API_BASE}/api/stocks`);
       if (res.ok) {
         const data = await res.json();
-        setStockList(data.stocks);
+        if (data.stocks && data.stocks.length > 0) {
+          setStockList(data.stocks);
+        }
 
-        const liveRes = await fetch(`${API_BASE}/api/live-stocks?limit=250`);
-        if (liveRes.ok) {
-          const liveData = await liveRes.json();
-          const liveBySymbol = new Map(liveData.stocks.map((stock) => [stock.symbol, stock]));
-          setStockList((prev) => prev.map((stock) => liveBySymbol.get(stock.symbol) || stock));
+        try {
+          const liveRes = await fetch(`${API_BASE}/api/live-stocks?limit=250`);
+          if (liveRes.ok) {
+            const liveData = await liveRes.json();
+            if (liveData.stocks && liveData.stocks.length > 0) {
+              const liveBySymbol = new Map(liveData.stocks.map((stock) => [stock.symbol, stock]));
+              setStockList((prev) => prev.map((stock) => liveBySymbol.get(stock.symbol) || stock));
+            }
+          }
+        } catch (liveErr) {
+          console.warn("Live stock snapshot fetch error, keeping full stock list:", liveErr);
         }
       }
     } catch (e) {
-      setStockList([
-        { symbol: 'ADANIENT', name: 'Adani Enterprises Ltd.', exchange: 'NSE', sector: 'Metals & Energy' },
-        { symbol: 'RELIANCE', name: 'Reliance Industries Ltd.', exchange: 'NSE', sector: 'Energy & Telecom' },
-        { symbol: 'TCS', name: 'Tata Consultancy Services', exchange: 'NSE', sector: 'IT Services' },
-        { symbol: 'INFY', name: 'Infosys Ltd.', exchange: 'NSE', sector: 'IT Services' },
-        { symbol: 'HDFCBANK', name: 'HDFC Bank Ltd.', exchange: 'NSE', sector: 'Banking & Financials' }
-      ]);
+      console.warn("Base stock list fetch error:", e);
     }
   };
 

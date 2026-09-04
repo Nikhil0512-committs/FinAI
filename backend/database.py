@@ -29,19 +29,6 @@ class FinAIDatabase:
         
         self._init_sqlite_tables()
         self._zip_candle_cache = {}
-
-    def _cursor(self):
-        """Thread-safe cursor context manager. Acquires _db_lock before creating a cursor."""
-        import contextlib
-        @contextlib.contextmanager
-        def _ctx():
-            with self._db_lock:
-                cur = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-                try:
-                    yield cur
-                finally:
-                    cur.close()
-        return _ctx()
         self._zip_namelist_set = None
         
         self.duck_conn = None
@@ -56,6 +43,19 @@ class FinAIDatabase:
                 
         self.available_stocks = self._discover_available_stocks()
         print(f"[FinAI Database] Initialized successfully with {len(self.available_stocks)} Indian stocks.")
+
+    def _cursor(self):
+        """Thread-safe cursor context manager. Acquires _db_lock before creating a cursor."""
+        import contextlib
+        @contextlib.contextmanager
+        def _ctx():
+            with self._db_lock:
+                cur = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+                try:
+                    yield cur
+                finally:
+                    cur.close()
+        return _ctx()
 
     def _discover_zip_symbols(self):
         if not os.path.exists(ZIP_PATH):
@@ -706,7 +706,7 @@ class FinAIDatabase:
         cache_key = limit
         if cache_key in self._snapshot_cache:
             cached_res, cached_ts = self._snapshot_cache[cache_key]
-            if now_ts - cached_ts < 10.0:
+            if now_ts - cached_ts < 30.0:
                 return cached_res
 
         from dhan_engine import dhan_engine
@@ -717,6 +717,7 @@ class FinAIDatabase:
         symbols = [s['symbol'] for s in stocks]
         quote_map = {}
 
+        # 1. Try configured brokers if any
         for quote in dhan_engine.get_live_quotes(symbols):
             quote_map[quote['symbol']] = quote
 
@@ -724,15 +725,18 @@ class FinAIDatabase:
         for quote in fyers_engine.get_live_quotes(missing):
             quote_map[quote['symbol']] = quote
             
+        # 2. Fetch all missing symbols in high-speed parallel batch via Yahoo Finance
         missing_from_apis = [s for s in symbols if s not in quote_map]
         if missing_from_apis:
-            # Limit Yahoo Finance sequential fetching to top 25 to prevent 30+ second timeouts
-            top_missing = missing_from_apis[:25]
-            for quote in yfinance_engine.get_live_quotes(top_missing):
-                quote_map[quote['symbol']] = quote
+            try:
+                for quote in yfinance_engine.get_live_quotes(missing_from_apis):
+                    if quote and quote.get('price'):
+                        quote_map[quote['symbol']] = quote
+            except Exception as e:
+                print(f"[FinAI Database] Snapshot batch quote error: {e}")
 
-        # Fill missing change_pct (e.g. from Dhan)
-        missing_change_pct = [s for s, q in quote_map.items() if q.get('change_pct') is None][:25]
+        # 3. Fill missing change_pct if any
+        missing_change_pct = [s for s, q in quote_map.items() if q.get('change_pct') is None]
         if missing_change_pct:
             for quote in yfinance_engine.get_live_quotes(missing_change_pct):
                 if quote['symbol'] in quote_map:

@@ -626,8 +626,8 @@ class FinAIDatabase:
 
     INDIAN_STOCK_BASE_PRICES = {k: v['base'] for k, v in CURATED_STOCK_MARKET_DATA.items()}
 
-    def get_symbol_live_price(self, symbol):
-        quote = self.get_local_latest_quote(symbol)
+    def get_symbol_live_price(self, symbol, skip_yfinance=False):
+        quote = self.get_local_latest_quote(symbol, skip_yfinance=skip_yfinance)
         if quote and quote.get('price') is not None:
             return round(float(quote['price']), 2)
         return 1500.0
@@ -1393,7 +1393,7 @@ class FinAIDatabase:
             exit_px = None
             
             # Check against real-time live price ticks
-            live_px = self.get_symbol_live_price(sym)
+            live_px = self.get_symbol_live_price(sym, skip_yfinance=True)
             if live_px and live_px > 0:
                 if side == 'BUY':
                     if sl is not None and live_px <= sl:

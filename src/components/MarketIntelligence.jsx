@@ -118,6 +118,7 @@ export const MarketIntelligence = () => {
   };
 
   useEffect(() => {
+    setCurrentQuote({ price: 0, change_pct: 0 });
     loadAllData(selectedStock, timeframe);
   }, [selectedStock, timeframe]);
 

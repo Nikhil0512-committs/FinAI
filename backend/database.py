@@ -725,22 +725,12 @@ class FinAIDatabase:
         for quote in fyers_engine.get_live_quotes(missing):
             quote_map[quote['symbol']] = quote
             
-        # 2. Fetch all missing symbols in high-speed parallel batch via Yahoo Finance
+        # 2. Fetch all missing symbols using high-speed local fallback to save API rate limits
         missing_from_apis = [s for s in symbols if s not in quote_map]
-        if missing_from_apis:
-            try:
-                for quote in yfinance_engine.get_live_quotes(missing_from_apis):
-                    if quote and quote.get('price'):
-                        quote_map[quote['symbol']] = quote
-            except Exception as e:
-                print(f"[FinAI Database] Snapshot batch quote error: {e}")
-
-        # 3. Fill missing change_pct if any
-        missing_change_pct = [s for s, q in quote_map.items() if q.get('change_pct') is None]
-        if missing_change_pct:
-            for quote in yfinance_engine.get_live_quotes(missing_change_pct):
-                if quote['symbol'] in quote_map:
-                    quote_map[quote['symbol']]['change_pct'] = quote.get('change_pct', 0.0)
+        for s in missing_from_apis:
+            quote = self.get_local_latest_quote(s, skip_yfinance=True)
+            if quote and quote.get('price'):
+                quote_map[s] = quote
 
         result = []
         for stock in stocks:

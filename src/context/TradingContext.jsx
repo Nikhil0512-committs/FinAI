@@ -259,6 +259,7 @@ export const TradingProvider = ({ children }) => {
   }, [userId]);
 
   useEffect(() => {
+    setCurrentQuote({ price: null, change_pct: null, time: null, symbol: selectedStock });
     fetchCandles(selectedStock, timeframe);
     fetchLiveQuote(selectedStock);
   }, [selectedStock, timeframe]);
@@ -329,9 +330,12 @@ export const TradingProvider = ({ children }) => {
 
   // Gentle fallback heartbeat polling
   useEffect(() => {
+    const pnlInterval = setInterval(() => {
+      fetchActivePositionQuotes();
+    }, 15000);
+    
     const quoteInterval = setInterval(() => {
       fetchLiveQuote(selectedStock);
-      fetchActivePositionQuotes();
       fetchMarketStatus();
       fetchPortfolio(userId);
     }, 8000);
@@ -345,6 +349,7 @@ export const TradingProvider = ({ children }) => {
     }, 10000);
 
     return () => {
+      clearInterval(pnlInterval);
       clearInterval(quoteInterval);
       clearInterval(stockListInterval);
       clearInterval(candleInterval);

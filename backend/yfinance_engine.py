@@ -7,12 +7,14 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError
 
 class YFinanceEngine:
     def __init__(self):
+        import requests
         self.source = 'yahoo_finance'
         self._candle_cache = {}
         self._quote_cache = {}
         self._cache_ttl = 300  # 300 seconds (5 min) TTL for candles
-        self._quote_ttl = 15   # 15 seconds TTL for live quotes
+        self._quote_ttl = 60   # 60 seconds TTL for live quotes to prevent rate limits
         self._executor = ThreadPoolExecutor(max_workers=4)
+        self.session = requests.Session()
 
     def _get_yf_symbol(self, symbol):
         """Converts Indian NSE symbol to Yahoo Finance symbol."""
@@ -45,7 +47,7 @@ class YFinanceEngine:
         """Safely fetch from yfinance with strict timeout execution to prevent server locks."""
         def download_job():
             try:
-                return yf.download(symbols, period=period, interval=interval, progress=False, threads=False)
+                return yf.download(symbols, period=period, interval=interval, progress=False, threads=False, session=self.session)
             except Exception:
                 return None
 
@@ -68,7 +70,7 @@ class YFinanceEngine:
     def _get_fast_quote(self, yf_sym: str):
         """Tier 1: yf.Ticker.fast_info — near real-time, no heavy download."""
         try:
-            tk = yf.Ticker(yf_sym)
+            tk = yf.Ticker(yf_sym, session=self.session)
             fi = tk.fast_info
             price = getattr(fi, 'last_price', None)
             prev  = getattr(fi, 'previous_close', None)

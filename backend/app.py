@@ -69,7 +69,7 @@ async def market_streaming_worker():
     while True:
         try:
             # 1. Process SL/TP triggers
-            triggered = db.process_sl_tp_triggers()
+            triggered = await asyncio.to_thread(db.process_sl_tp_triggers)
             if triggered:
                 await ws_manager.broadcast({
                     "type": "SL_TP_TRIGGERED",
@@ -79,7 +79,7 @@ async def market_streaming_worker():
 
             # 2. Broadcast active ticks across Redis & WebSockets
             for sym in symbols:
-                q = db.get_local_latest_quote(sym)
+                q = await asyncio.to_thread(db.get_local_latest_quote, sym)
                 tick_msg = {
                     "type": "TICK",
                     "symbol": sym,

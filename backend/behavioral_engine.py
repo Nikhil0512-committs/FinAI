@@ -60,7 +60,7 @@ class BehavioralEngine:
         time_gap_mins = (now - last_time).total_seconds() / 60.0
         last_pnl = float(last_trade.get('pnl', 0.0))
         
-        past_values = [float(t.get('total_value', 10000.0)) for t in recent_trades[:5]]
+        past_values = [float(t.get('total_value') or 10000.0) for t in recent_trades[:5]]
         avg_position_val = np.mean(past_values) if past_values else total_val
         position_size_ratio = total_val / (avg_position_val + 1e-9)
         
@@ -170,15 +170,15 @@ class BehavioralEngine:
             # Trade audits for the trades placed so far
             pre_audits = []
             for t in sorted_trades:
-                pnl = float(t.get('pnl', 0.0))
+                pnl = float(t.get('pnl') or 0.0)
                 pre_audits.append({
                     'trade_code': t.get('trade_code', ''),
                     'symbol': t.get('symbol', ''),
                     'side': t.get('side', 'BUY'),
-                    'quantity': int(t.get('quantity', 1)),
-                    'price': float(t.get('price', 0.0)),
+                    'quantity': int(t.get('quantity') or 1),
+                    'price': float(t.get('price') or 0.0),
                     'pnl': round(pnl, 2),
-                    'holding_time_minutes': float(t.get('holding_time_minutes', 1.0)),
+                    'holding_time_minutes': float(t.get('holding_time_minutes') or 1.0),
                     'status': t.get('status', 'EXECUTED')
                 })
 
@@ -219,20 +219,20 @@ class BehavioralEngine:
         revenge_score = max(35, min(99, int(100 - (revenge_count * 18))))
 
         # 2. Calculate Position Size Escalation
-        sizes = [float(t.get('total_value', 0.0)) for t in sorted_trades]
+        sizes = [float(t.get('total_value') or 0.0) for t in sorted_trades]
         avg_size = float(np.mean(sizes)) if sizes else 10000.0
         post_loss_sizes = []
         for i in range(len(sorted_trades) - 1):
-            if float(sorted_trades[i+1].get('pnl', 0.0)) < 0:
-                post_loss_sizes.append(float(sorted_trades[i].get('total_value', avg_size)))
+            if float(sorted_trades[i+1].get('pnl') or 0.0) < 0:
+                post_loss_sizes.append(float(sorted_trades[i].get('total_value') or avg_size))
 
         avg_post_loss_size = float(np.mean(post_loss_sizes)) if post_loss_sizes else avg_size
         size_escalation_ratio = avg_post_loss_size / (avg_size + 1e-9)
         position_control_score = max(40, min(99, int(100 - max(0, (size_escalation_ratio - 1.0) * 80))))
 
         # 3. Holding Balance (Win vs Loss Holding Time)
-        win_holds = [float(t.get('holding_time_minutes', 15.0)) for t in sorted_trades if float(t.get('pnl', 0.0)) > 0]
-        loss_holds = [float(t.get('holding_time_minutes', 15.0)) for t in sorted_trades if float(t.get('pnl', 0.0)) <= 0]
+        win_holds = [float(t.get('holding_time_minutes') or 15.0) for t in sorted_trades if float(t.get('pnl') or 0.0) > 0]
+        loss_holds = [float(t.get('holding_time_minutes') or 15.0) for t in sorted_trades if float(t.get('pnl') or 0.0) <= 0]
         avg_win_hold = float(np.mean(win_holds)) if win_holds else 20.0
         avg_loss_hold = float(np.mean(loss_holds)) if loss_holds else 15.0
         holding_ratio = avg_win_hold / (avg_loss_hold + 1e-9)
@@ -256,13 +256,13 @@ class BehavioralEngine:
         # 6. Detailed Trade Audits
         trade_audits = []
         for t in sorted_trades[:15]:
-            pnl = float(t.get('pnl', 0.0))
+            pnl = float(t.get('pnl') or 0.0)
             status = t.get('status', 'EXECUTED')
             code = t.get('trade_code', '')
             sym = t.get('symbol', 'EQUITY')
             side = t.get('side', 'BUY')
-            qty = int(t.get('quantity', 1))
-            price = float(t.get('price', 0.0))
+            qty = int(t.get('quantity') or 1)
+            price = float(t.get('price') or 0.0)
             
             risk_flag = 'OPTIMAL'
             if pnl < 0:
@@ -297,8 +297,8 @@ class BehavioralEngine:
             insights.append("Disciplined Execution: Position sizing, time gaps, and risk management parameters align with optimal trading guidelines.")
 
         # Calculate Risk/Reward Ratio
-        win_pnls = [float(t.get('pnl', 0.0)) for t in sorted_trades if float(t.get('pnl', 0.0)) > 0]
-        loss_pnls = [float(t.get('pnl', 0.0)) for t in sorted_trades if float(t.get('pnl', 0.0)) <= 0]
+        win_pnls = [float(t.get('pnl') or 0.0) for t in sorted_trades if float(t.get('pnl') or 0.0) > 0]
+        loss_pnls = [float(t.get('pnl') or 0.0) for t in sorted_trades if float(t.get('pnl') or 0.0) <= 0]
         avg_win_pnl = float(np.mean(win_pnls)) if win_pnls else 0.0
         avg_loss_pnl = abs(float(np.mean(loss_pnls))) if loss_pnls else 1.0
         rrr = avg_win_pnl / (avg_loss_pnl + 1e-9)
@@ -306,7 +306,7 @@ class BehavioralEngine:
         # Calculate Time-of-Day Analysis
         morning_pnls, midday_pnls, afternoon_pnls = [], [], []
         for t in sorted_trades:
-            pnl = float(t.get('pnl', 0.0))
+            pnl = float(t.get('pnl') or 0.0)
             if t.get('timestamp'):
                 try:
                     dt = datetime.strptime(str(t['timestamp']).split('.')[0], '%Y-%m-%d %H:%M:%S')
@@ -326,7 +326,7 @@ class BehavioralEngine:
         best_tod = max(tod_metrics.keys(), key=lambda k: tod_metrics[k]['win_rate'])
 
         # Market Context
-        rsi_loss_count = sum(1 for t in sorted_trades if float(t.get('pnl', 0.0)) <= 0 and float(t.get('rsi_14', 50.0)) > 70)
+        rsi_loss_count = sum(1 for t in sorted_trades if float(t.get('pnl') or 0.0) <= 0 and float(t.get('rsi_14') or 50.0) > 70)
         high_rsi_loss_pct = (rsi_loss_count / len(loss_pnls) * 100.0) if loss_pnls else 0.0
 
         improvements = [

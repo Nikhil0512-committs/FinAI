@@ -329,6 +329,7 @@ async def execute_trade(req: ExecuteTradeRequest):
         # Push inbound event to Kafka
         order_event_id = await kafka_engine.send_order_inbound(req.dict())
 
+        market_features = db.get_behavioral_market_features(req.symbol)
         trade = db.execute_paper_trade(
             user_id=req.user_id,
             symbol=req.symbol,
@@ -339,7 +340,8 @@ async def execute_trade(req: ExecuteTradeRequest):
             product_type=req.product_type or 'DELIVERY',
             order_type=req.order_type or 'MARKET',
             stop_loss=req.stop_loss,
-            take_profit=req.take_profit
+            take_profit=req.take_profit,
+            market_features=market_features
         )
         
         # Publish matched order event

@@ -107,11 +107,10 @@ class FinAIDatabase:
                 trigger_type TEXT
             )
         """)
-        
-        
-        
-        
-        
+        # Add market feature columns to trades table for behavioral analysis
+        cursor.execute("ALTER TABLE trades ADD COLUMN IF NOT EXISTS rsi_14 NUMERIC")
+        cursor.execute("ALTER TABLE trades ADD COLUMN IF NOT EXISTS volatility_20 NUMERIC")
+        cursor.execute("ALTER TABLE trades ADD COLUMN IF NOT EXISTS macd NUMERIC")
 
         # XAI Receipts Table
         cursor.execute("""
@@ -1244,7 +1243,7 @@ class FinAIDatabase:
             raise ValueError("Invalid username or password.")
         return {'user_id': row['user_id'], 'username': row['username'], 'email': row['email']}
 
-    def execute_paper_trade(self, user_id, symbol, side, quantity, price, sentiment_tag='Neutral', product_type='DELIVERY', order_type='MARKET', stop_loss=None, take_profit=None):
+    def execute_paper_trade(self, user_id, symbol, side, quantity, price, sentiment_tag='Neutral', product_type='DELIVERY', order_type='MARKET', stop_loss=None, take_profit=None, market_features=None):
         cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         cursor.execute("INSERT INTO portfolio (user_id, cash_balance, initial_balance) VALUES (%s, 100000.0, 100000.0) ON CONFLICT (user_id) DO NOTHING", (user_id,))
         symbol_upper = symbol.upper().strip()
@@ -1252,6 +1251,11 @@ class FinAIDatabase:
 
         sl_val = float(stop_loss) if stop_loss and float(stop_loss) > 0 else None
         tp_val = float(take_profit) if take_profit and float(take_profit) > 0 else None
+
+        mf = market_features or {}
+        rsi_14 = float(mf.get('rsi_14', 50))
+        vol_20 = float(mf.get('volatility_20', 0.01))
+        macd = float(mf.get('macd', 0.0))
 
         if sl_val is not None:
             if side_upper == 'BUY' and sl_val >= price:
@@ -1321,9 +1325,9 @@ class FinAIDatabase:
                     max_id = cursor.fetchone()[0]
                     closed_code = f"T-C-{max_id + 1:04d}"
                     cursor.execute("""
-                        INSERT INTO trades (trade_code, user_id, symbol, side, quantity, price, exit_price, total_value, timestamp, exit_timestamp, sentiment_tag, status, pnl, holding_time_minutes, product_type, order_type)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'CLOSED', %s, %s, %s, %s)
-                    """, (closed_code, user_id, symbol_upper, opposite_side, match_qty, op_price, price, match_qty * op_price, op_trade['timestamp'], now, sentiment_tag, trade_pnl, holding_mins, product_type, trade_order_type))
+                        INSERT INTO trades (trade_code, user_id, symbol, side, quantity, price, exit_price, total_value, timestamp, exit_timestamp, sentiment_tag, status, pnl, holding_time_minutes, product_type, order_type, rsi_14, volatility_20, macd)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'CLOSED', %s, %s, %s, %s, %s, %s, %s)
+                    """, (closed_code, user_id, symbol_upper, opposite_side, match_qty, op_price, price, match_qty * op_price, op_trade['timestamp'], now, sentiment_tag, trade_pnl, holding_mins, product_type, trade_order_type, rsi_14, vol_20, macd))
 
                 remaining_qty -= match_qty
 
@@ -1341,9 +1345,9 @@ class FinAIDatabase:
             trade_code = f"T-{max_id + 1:04d}"
 
             cursor.execute("""
-                INSERT INTO trades (trade_code, user_id, symbol, side, quantity, price, total_value, timestamp, sentiment_tag, status, product_type, order_type, stop_loss, take_profit)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (trade_code, user_id, symbol_upper, side_upper, remaining_qty, price, total_val, now, sentiment_tag, status, product_type, trade_order_type, sl_val, tp_val))
+                INSERT INTO trades (trade_code, user_id, symbol, side, quantity, price, total_value, timestamp, sentiment_tag, status, product_type, order_type, stop_loss, take_profit, rsi_14, volatility_20, macd)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (trade_code, user_id, symbol_upper, side_upper, remaining_qty, price, total_val, now, sentiment_tag, status, product_type, trade_order_type, sl_val, tp_val, rsi_14, vol_20, macd))
 
             if status == 'EXECUTED':
                 if side_upper == 'BUY':

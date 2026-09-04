@@ -296,42 +296,75 @@ class BehavioralEngine:
         if not insights:
             insights.append("Disciplined Execution: Position sizing, time gaps, and risk management parameters align with optimal trading guidelines.")
 
+        # Calculate Risk/Reward Ratio
+        win_pnls = [float(t.get('pnl', 0.0)) for t in sorted_trades if float(t.get('pnl', 0.0)) > 0]
+        loss_pnls = [float(t.get('pnl', 0.0)) for t in sorted_trades if float(t.get('pnl', 0.0)) <= 0]
+        avg_win_pnl = float(np.mean(win_pnls)) if win_pnls else 0.0
+        avg_loss_pnl = abs(float(np.mean(loss_pnls))) if loss_pnls else 1.0
+        rrr = avg_win_pnl / (avg_loss_pnl + 1e-9)
+
+        # Calculate Time-of-Day Analysis
+        morning_pnls, midday_pnls, afternoon_pnls = [], [], []
+        for t in sorted_trades:
+            pnl = float(t.get('pnl', 0.0))
+            if t.get('timestamp'):
+                try:
+                    dt = datetime.strptime(str(t['timestamp']).split('.')[0], '%Y-%m-%d %H:%M:%S')
+                    hour = dt.hour + dt.minute / 60.0
+                    if 9.25 <= hour < 11.0: morning_pnls.append(pnl)
+                    elif 11.0 <= hour < 13.5: midday_pnls.append(pnl)
+                    else: afternoon_pnls.append(pnl)
+                except:
+                    pass
+        
+        def calc_win_rate(pnls): return sum(1 for p in pnls if p > 0) / (len(pnls) + 1e-9) * 100.0 if pnls else 0.0
+        tod_metrics = {
+            'Morning': {'win_rate': calc_win_rate(morning_pnls), 'pnl': sum(morning_pnls)},
+            'Mid-day': {'win_rate': calc_win_rate(midday_pnls), 'pnl': sum(midday_pnls)},
+            'Afternoon': {'win_rate': calc_win_rate(afternoon_pnls), 'pnl': sum(afternoon_pnls)}
+        }
+        best_tod = max(tod_metrics.keys(), key=lambda k: tod_metrics[k]['win_rate'])
+
+        # Market Context
+        rsi_loss_count = sum(1 for t in sorted_trades if float(t.get('pnl', 0.0)) <= 0 and float(t.get('rsi_14', 50.0)) > 70)
+        high_rsi_loss_pct = (rsi_loss_count / len(loss_pnls) * 100.0) if loss_pnls else 0.0
+
         improvements = [
             {
-                'pillar': 'Pacing & Timeout',
-                'title': 'Post-Loss Cooling-Off Interval',
-                'current_value': f"{avg_loss_gap:.1f} mins",
-                'target_value': '≥ 20.0 mins',
-                'status': 'OPTIMAL' if avg_loss_gap >= 20.0 else 'NEEDS_IMPROVEMENT',
-                'recommendation': 'Accept automated 20-minute cooling-off pauses after any trade drawdown to reset emotional baseline before re-entering.',
-                'rupee_impact': 14500.0
+                'pillar': 'Next Trade Blueprint',
+                'title': 'Primary Action Item',
+                'current_value': 'Dynamic Rule',
+                'target_value': 'Strict Execution',
+                'status': 'NEEDS_IMPROVEMENT' if discipline_score < 80 else 'OPTIMAL',
+                'recommendation': f"Rule 1: Trade size must be under ₹{int(avg_size)}. Rule 2: Do not trade outside of {best_tod} session. Rule 3: Wait for pullbacks if RSI is above 70.",
+                'rupee_impact': round(avg_loss_pnl * 1.5, 1)
             },
             {
-                'pillar': 'Position Sizing',
-                'title': 'Post-Loss Size Control Ratio',
-                'current_value': f"{size_escalation_ratio:.2f}x",
-                'target_value': '≤ 1.00x baseline',
-                'status': 'OPTIMAL' if size_escalation_ratio <= 1.1 else 'NEEDS_IMPROVEMENT',
-                'recommendation': 'Maintain constant position capital. Avoid increasing order size after a drawdown to quickly recover capital.',
-                'rupee_impact': 22000.0
+                'pillar': 'Risk Management',
+                'title': 'Risk/Reward Ratio (RRR)',
+                'current_value': f"1:{rrr:.2f}",
+                'target_value': '1:≥2.00',
+                'status': 'OPTIMAL' if rrr >= 2.0 else 'NEEDS_IMPROVEMENT',
+                'recommendation': 'You need an RRR of at least 1:2 to be sustainably profitable. Cut losses tighter and let winners run.',
+                'rupee_impact': round(avg_loss_pnl * (2.0 - rrr) if rrr < 2.0 else 0, 1)
             },
             {
-                'pillar': 'Holding Duration',
-                'title': 'Winner vs Loser Holding Ratio',
-                'current_value': f"{avg_win_hold:.1f}m / {avg_loss_hold:.1f}m",
-                'target_value': 'Win Hold ≥ Loss Hold',
-                'status': 'OPTIMAL' if avg_win_hold >= avg_loss_hold else 'NEEDS_IMPROVEMENT',
-                'recommendation': 'Cut losing trades systematically within 15 minutes. Allow profitable momentum trades to reach profit targets.',
-                'rupee_impact': 9800.0
+                'pillar': 'Time of Day',
+                'title': 'Optimal Trading Window',
+                'current_value': f"{best_tod} (Win Rate: {tod_metrics[best_tod]['win_rate']:.1f}%)",
+                'target_value': 'Only trade in Best Session',
+                'status': 'OPTIMAL' if tod_metrics[best_tod]['win_rate'] > 50 else 'NEEDS_IMPROVEMENT',
+                'recommendation': f"Your best performance is in the {best_tod} session. Avoid forcing trades in other sessions.",
+                'rupee_impact': round(sum([v['pnl'] for k, v in tod_metrics.items() if v['pnl'] < 0]) * -1, 1)
             },
             {
-                'pillar': 'Execution Mode',
-                'title': 'Market Order Slippage Discipline',
-                'current_value': 'Market Orders',
-                'target_value': 'Limit Order Confirmation',
-                'status': 'MODERATE',
-                'recommendation': 'Use Limit orders instead of Market orders when trading high-volatility sentiment stocks to prevent adverse slippage.',
-                'rupee_impact': 6400.0
+                'pillar': 'Market Context',
+                'title': 'Overbought RSI Entry',
+                'current_value': f"{high_rsi_loss_pct:.1f}% Losses",
+                'target_value': '0.0% Losses',
+                'status': 'MODERATE' if high_rsi_loss_pct > 30 else 'OPTIMAL',
+                'recommendation': 'You tend to buy when the stock is already overextended (RSI > 70). Wait for a pullback to RSI < 60 before entering.',
+                'rupee_impact': round(avg_loss_pnl * rsi_loss_count, 1)
             }
         ]
 

@@ -791,8 +791,8 @@ class FinAIDatabase:
         resample_rule = '5min'
         if timeframe == '1m': resample_rule = '1min'
         elif timeframe == '15m': resample_rule = '15min'
-        elif timeframe == '1h': resample_rule = '1H'
-        elif timeframe == '1d': resample_rule = '1D'
+        elif timeframe == '1h': resample_rule = '1h'
+        elif timeframe == '1d': resample_rule = '1d'
         
         ohlc_dict = {
             'open': 'first',

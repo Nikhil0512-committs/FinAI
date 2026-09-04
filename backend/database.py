@@ -778,14 +778,35 @@ class FinAIDatabase:
         target_price = float(quote.get('price', 1500.0))
         target_change = float(quote.get('change_pct', 0.0))
 
-        if df is not None and not df.empty:
-            curr_last = float(df['close'].values[-1])
-            if curr_last > 0 and abs(curr_last - target_price) > 0.5:
-                scale_ratio = target_price / curr_last
-                df['open'] = np.round(df['open'] * scale_ratio, 2)
-                df['high'] = np.round(df['high'] * scale_ratio, 2)
-                df['low'] = np.round(df['low'] * scale_ratio, 2)
-                df['close'] = np.round(df['close'] * scale_ratio, 2)
+        if df is None or df.empty:
+            print(f"[FinAI Database] WARNING: No candle data found for {sym_upper} and fallback dataset is missing. Generating synthetic fallback data.")
+            # Generate synthetic random walk so the chart doesn't break
+            import pandas as pd
+            import numpy as np
+            from datetime import timedelta
+            
+            end_time = datetime.now()
+            start_time = end_time - timedelta(days=5)
+            date_rng = pd.date_range(start=start_time, end=end_time, freq='5min')
+            
+            num_candles = len(date_rng)
+            returns = np.random.normal(loc=0, scale=0.001, size=num_candles)
+            price_path = target_price * np.exp(np.cumsum(returns))
+            
+            df = pd.DataFrame({'date': date_rng})
+            df['close'] = price_path
+            df['open'] = df['close'].shift(1).fillna(target_price)
+            df['high'] = df[['open', 'close']].max(axis=1) * (1 + np.abs(np.random.normal(0, 0.001, num_candles)))
+            df['low'] = df[['open', 'close']].min(axis=1) * (1 - np.abs(np.random.normal(0, 0.001, num_candles)))
+            df['volume'] = np.random.randint(1000, 100000, size=num_candles)
+            
+        curr_last = float(df['close'].values[-1])
+        if curr_last > 0 and abs(curr_last - target_price) > 0.5:
+            scale_ratio = target_price / curr_last
+            df['open'] = np.round(df['open'] * scale_ratio, 2)
+            df['high'] = np.round(df['high'] * scale_ratio, 2)
+            df['low'] = np.round(df['low'] * scale_ratio, 2)
+            df['close'] = np.round(df['close'] * scale_ratio, 2)
             
         df.set_index('date', inplace=True)
         resample_rule = '5min'

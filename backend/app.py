@@ -481,7 +481,7 @@ def seed_demo_data(user_id: str = 'default_user'):
     # Ensure portfolio exists
     db.get_portfolio(user_id)
     
-    db.sqlite_conn.cursor().execute("DELETE FROM trades WHERE user_id = ?", (user_id,))
+    db.sqlite_conn.cursor().execute("DELETE FROM trades WHERE user_id = %s", (user_id,))
     
     demo_trades = [
         ('HDFCBANK', 'BUY', 50, 1520.0, -3200.0, 15),
@@ -494,7 +494,7 @@ def seed_demo_data(user_id: str = 'default_user'):
     total_demo_pnl = sum([t[4] for t in demo_trades])
     cash_after_demo = 100000.0 + total_demo_pnl
 
-    db.sqlite_conn.cursor().execute("UPDATE portfolio SET cash_balance = ?, initial_balance = 100000.0 WHERE user_id = ?", (cash_after_demo, user_id))
+    db.sqlite_conn.cursor().execute("UPDATE portfolio SET cash_balance = %s, initial_balance = 100000.0 WHERE user_id = %s", (cash_after_demo, user_id))
     db.sqlite_conn.commit()
 
     for i, (sym, side, qty, px, pnl, hold) in enumerate(demo_trades, 1):
@@ -502,7 +502,7 @@ def seed_demo_data(user_id: str = 'default_user'):
         exit_px = round(px + (pnl / qty), 2)
         db.sqlite_conn.cursor().execute("""
             INSERT INTO trades (trade_code, user_id, symbol, side, quantity, price, exit_price, total_value, timestamp, sentiment_tag, status, pnl, holding_time_minutes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, DATETIME('now', ?), 'Bearish Volatility', 'CLOSED', ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW() + CAST(%s AS INTERVAL), 'Bearish Volatility', 'CLOSED', %s, %s)
         """, (code, user_id, sym, side, qty, px, exit_px, qty * px, f"-{120 - i*15} minutes", pnl, hold))
 
     db.sqlite_conn.commit()
@@ -625,7 +625,7 @@ def get_trade_post_mortem(req: PostMortemRequest):
     t = db.get_trade_by_code(code_clean)
     if not t:
         cursor = db.sqlite_conn.cursor()
-        cursor.execute("SELECT * FROM trades WHERE trade_code LIKE ? OR id = ? ORDER BY id DESC LIMIT 1", (f"%{code_clean}%", code_clean.replace('T-', '')))
+        cursor.execute("SELECT * FROM trades WHERE trade_code LIKE %s OR CAST(id AS TEXT) = %s ORDER BY id DESC LIMIT 1", (f"%%{code_clean}%%", code_clean.replace('T-', '')))
         row = cursor.fetchone()
         if row:
             t = dict(row)

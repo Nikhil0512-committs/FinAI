@@ -1317,7 +1317,8 @@ class FinAIDatabase:
                         UPDATE trades SET quantity = %s, total_value = %s WHERE id = %s
                     """, (new_op_qty, new_op_total_val, op_trade['id']))
 
-                    max_id = cursor.execute("SELECT COALESCE(MAX(id), 0) FROM trades").fetchone()[0]
+                    cursor.execute("SELECT COALESCE(MAX(id), 0) FROM trades")
+                    max_id = cursor.fetchone()[0]
                     closed_code = f"T-C-{max_id + 1:04d}"
                     cursor.execute("""
                         INSERT INTO trades (trade_code, user_id, symbol, side, quantity, price, exit_price, total_value, timestamp, exit_timestamp, sentiment_tag, status, pnl, holding_time_minutes, product_type, order_type)
@@ -1335,7 +1336,8 @@ class FinAIDatabase:
             if current_cash < total_val:
                 raise ValueError(f"Insufficient cash balance (₹{current_cash:,.2f}) for trade required capital (₹{total_val:,.2f})")
 
-            max_id = cursor.execute("SELECT COALESCE(MAX(id), 0) FROM trades").fetchone()[0]
+            cursor.execute("SELECT COALESCE(MAX(id), 0) FROM trades")
+            max_id = cursor.fetchone()[0]
             trade_code = f"T-{max_id + 1:04d}"
 
             cursor.execute("""

@@ -209,13 +209,19 @@ export const BehavioralScorecard = () => {
                     <span>Open Trading Terminal</span>
                     <ArrowRight className="w-4 h-4" />
                   </Link>
-                  <span className="text-[11px] font-mono text-gray-500">Place {6 - tradesAnalyzed} more trade{6 - tradesAnalyzed === 1 ? '' : 's'} to unlock full scorecard</span>
+                  <span className="text-[11px] font-mono text-gray-500"><span className="hidden md:inline">Place {Math.max(0, 6 - tradesAnalyzed)} more trades to unlock full scorecard</span></span>
                 </div>
               </div>
+              
+              {profileData?.error && (
+                <div className="mt-8 p-4 bg-red-950/30 border border-red-900/50 rounded text-red-400 font-mono text-xs overflow-auto">
+                  <div className="font-bold mb-2">Backend Error: {profileData.error}</div>
+                  <pre>{profileData.traceback}</pre>
+                </div>
+              )}
             </div>
-
-            {/* Current Logged Trades in Calibration */}
-            <div className="border border-gray-900 bg-[#020308] p-6 space-y-4">
+            
+            <div className="mt-8 border border-gray-900 bg-[#020308] overflow-hidden">
               <div className="flex justify-between items-center border-b border-gray-900 pb-3">
                 <div className="text-[10px] font-mono text-gray-400 uppercase tracking-widest">
                   Trades Recorded in Sample ({tradesList.length})

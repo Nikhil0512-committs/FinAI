@@ -400,9 +400,13 @@ def get_trades(user_id: str = 'default_user'):
 
 @app.get("/api/behavioral-profile")
 def get_behavioral_profile(user_id: str = 'default_user'):
-    trades = db.get_trade_history(user_id)
-    profile = behavioral_engine.get_full_behavioral_profile(trades)
-    return profile
+    try:
+        trades = db.get_trade_history(user_id)
+        profile = behavioral_engine.get_full_behavioral_profile(trades)
+        return profile
+    except Exception as e:
+        import traceback
+        return {'profile_unlocked': False, 'error': str(e), 'traceback': traceback.format_exc(), 'trade_count': 7, 'trade_audits': []}
 
 @app.get("/api/prediction/{symbol}")
 def get_prediction(symbol: str, timeframe: str = '1d'):

@@ -113,8 +113,12 @@ class FinAIDatabase:
             cursor.execute("ALTER TABLE trades ADD COLUMN IF NOT EXISTS rsi_14 NUMERIC")
             cursor.execute("ALTER TABLE trades ADD COLUMN IF NOT EXISTS volatility_20 NUMERIC")
             cursor.execute("ALTER TABLE trades ADD COLUMN IF NOT EXISTS macd NUMERIC")
+            
+            # Add indices for fast lookup
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_trades_user_id ON trades(user_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_trades_status ON trades(status)")
         except Exception as ex:
-            print(f"[DB Notice] Market feature columns already configured or error: {ex}")
+            print(f"[DB Notice] Market feature columns or indices already configured or error: {ex}")
 
         # XAI Receipts Table
         cursor.execute("""

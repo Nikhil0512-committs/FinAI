@@ -17,18 +17,22 @@ from stock_prediction_engine import stock_prediction_engine
 from redis_engine import redis_engine
 from kafka_engine import kafka_engine, KafkaTopic
 
+from fastapi.middleware.gzip import GZipMiddleware
+
 app = FastAPI(
     title="FinAI API",
     description="AI Market Intelligence & Paper-Trading Behavioral Coach API",
     version="6.0.0"
 )
 
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    max_age=86400,
 )
 
 # ─── High-Speed WebSocket Connection Manager ───

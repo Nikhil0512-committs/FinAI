@@ -343,7 +343,7 @@ class BehavioralEngine:
                 'pillar': 'Risk Management',
                 'title': 'Risk/Reward Ratio (RRR)',
                 'current_value': f"1:{rrr:.2f}",
-                'target_value': '1:≥2.00',
+                'target_value': '1:>=2.00',
                 'status': 'OPTIMAL' if rrr >= 2.0 else 'NEEDS_IMPROVEMENT',
                 'recommendation': 'You need an RRR of at least 1:2 to be sustainably profitable. Cut losses tighter and let winners run.',
                 'rupee_impact': round(avg_loss_pnl * (2.0 - rrr) if rrr < 2.0 else 0, 1)

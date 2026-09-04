@@ -23,6 +23,7 @@ except ImportError:
 class FinAIDatabase:
     def __init__(self):
         self.sqlite_conn = psycopg2.connect(os.environ.get('DATABASE_URL'), sslmode='require')
+        self.sqlite_conn.autocommit = True
         
         self._init_sqlite_tables()
         self._zip_candle_cache = {}
@@ -108,9 +109,12 @@ class FinAIDatabase:
             )
         """)
         # Add market feature columns to trades table for behavioral analysis
-        cursor.execute("ALTER TABLE trades ADD COLUMN IF NOT EXISTS rsi_14 NUMERIC")
-        cursor.execute("ALTER TABLE trades ADD COLUMN IF NOT EXISTS volatility_20 NUMERIC")
-        cursor.execute("ALTER TABLE trades ADD COLUMN IF NOT EXISTS macd NUMERIC")
+        try:
+            cursor.execute("ALTER TABLE trades ADD COLUMN IF NOT EXISTS rsi_14 NUMERIC")
+            cursor.execute("ALTER TABLE trades ADD COLUMN IF NOT EXISTS volatility_20 NUMERIC")
+            cursor.execute("ALTER TABLE trades ADD COLUMN IF NOT EXISTS macd NUMERIC")
+        except Exception as ex:
+            print(f"[DB Notice] Market feature columns already configured or error: {ex}")
 
         # XAI Receipts Table
         cursor.execute("""

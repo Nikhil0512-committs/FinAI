@@ -406,7 +406,7 @@ def get_behavioral_profile(user_id: str = 'default_user'):
         return profile
     except Exception as e:
         import traceback
-        return {'profile_unlocked': False, 'error': str(e), 'traceback': traceback.format_exc(), 'trade_count': 7, 'trade_audits': []}
+        return {'profile_unlocked': False, 'error': str(e), 'traceback': traceback.format_exc(), 'trade_count': len(trades) if 'trades' in locals() and trades else 0, 'trade_audits': []}
 
 @app.get("/api/prediction/{symbol}")
 def get_prediction(symbol: str, timeframe: str = '1d'):

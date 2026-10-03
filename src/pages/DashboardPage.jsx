@@ -102,13 +102,6 @@ export const DashboardPage = () => {
         </div>
       </div>
 
-      {/* ─── NEW: EMOTION COST TICKER ─── */}
-      <div className="bg-rose-950/20 border-b border-rose-900/50 py-2 overflow-hidden flex items-center justify-center">
-        <div className="flex items-center gap-3">
-          <span className="text-[10px] font-mono text-rose-500 uppercase tracking-widest flex items-center gap-1"><ArrowRight className="w-3 h-3"/> Cost of Emotion (Session)</span>
-          <span className="text-sm font-mono text-rose-400 font-bold tracking-tight">₹{emotionCost.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-        </div>
-      </div>
 
       <div className="max-w-[1600px] mx-auto px-6 lg:px-12 pt-8 pb-24">
         
@@ -136,13 +129,18 @@ export const DashboardPage = () => {
             </div>
           </div>
           
-          {/* STREAK GAMIFICATION */}
-          <div className="flex items-center gap-3 mt-6">
+          {/* STREAK GAMIFICATION & EMOTION COST */}
+          <div className="flex flex-wrap items-center gap-3 mt-6">
             <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Discipline Streak</div>
             <div className="flex items-center gap-1 bg-[#0a1020]/50 border border-emerald-900/50 px-3 py-1 text-emerald-400 text-[11px] font-mono font-bold tracking-widest">
               🔥 {currentStreak} DISCIPLINED TRADES
             </div>
             <div className="text-[10px] font-mono text-gray-600 uppercase tracking-widest hidden md:block">Personal Best: {maxStreak}</div>
+
+            <div className="ml-auto flex items-center gap-3 bg-rose-950/20 border border-rose-900/50 px-3 py-1">
+              <span className="text-[10px] font-mono text-rose-500 uppercase tracking-widest flex items-center gap-1"><ArrowRight className="w-3 h-3"/> Cost of Emotion</span>
+              <span className="text-[11px] font-mono text-rose-400 font-bold tracking-tight">₹{emotionCost.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+            </div>
           </div>
         </section>
 

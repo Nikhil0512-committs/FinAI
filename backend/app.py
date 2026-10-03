@@ -411,6 +411,20 @@ def get_behavioral_profile(user_id: str = 'default_user'):
         import traceback
         return {'profile_unlocked': False, 'error': str(e), 'traceback': traceback.format_exc(), 'trade_count': len(trades) if 'trades' in locals() and trades else 0, 'trade_audits': []}
 
+@app.get("/api/tilt-score")
+def get_tilt_score(user_id: str = 'default_user', current_trade_value: float = 10000.0, sentiment_tag: str = 'Neutral'):
+    trades = db.get_trade_history(user_id)
+    score = behavioral_engine.compute_tilt_score(trades, current_trade_value, sentiment_tag)
+    return {"tilt_score": score}
+
+@app.get("/api/behavioral-twin")
+def get_behavioral_twin(user_id: str = 'default_user'):
+    trades = db.get_trade_history(user_id)
+    projection = behavioral_engine.generate_behavioral_twin_projection(trades)
+    if not projection:
+        return {"success": False, "error": "Insufficient trade data for projection."}
+    return {"success": True, "projection": projection}
+
 @app.get("/api/prediction/{symbol}")
 def get_prediction(symbol: str, timeframe: str = '1d'):
     pred = stock_prediction_engine.get_prediction(symbol)

@@ -17,9 +17,11 @@ import {
   TrendingUp, 
   TrendingDown, 
   Activity,
-  Cpu
+  Cpu,
+  ShieldAlert
 } from 'lucide-react';
 import { StockSelector } from '../components/StockSelector';
+import { TiltMeter } from '../components/TiltMeter';
 
 export const TerminalPage = () => {
   const { 
@@ -48,6 +50,8 @@ export const TerminalPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const { userId, user, isAuthenticated, setIsAuthModalOpen } = useAuth();
   const [orderMsg, setOrderMsg] = useState(null);
+  const [tiltCriticalScore, setTiltCriticalScore] = useState(0);
+  const [frictionReason, setFrictionReason] = useState("");
 
   const activePrice = currentQuote.price || 1500.0;
   const execPrice = orderType === 'LIMIT' && limitPrice ? parseFloat(limitPrice) : activePrice;
@@ -61,6 +65,15 @@ export const TerminalPage = () => {
     e.preventDefault();
     setSubmitting(true);
     setOrderMsg(null);
+
+    if (tiltCriticalScore > 70 && frictionReason.length < 10) {
+      setSubmitting(false);
+      setOrderMsg({
+        type: 'error',
+        text: 'TILT DETECTED: You must provide a valid reason (min 10 chars) for this trade.'
+      });
+      return;
+    }
 
     if (!isAuthenticated) {
       setSubmitting(false);
@@ -379,6 +392,12 @@ export const TerminalPage = () => {
 
           <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar flex flex-col">
             
+            <TiltMeter 
+              currentTradeValue={parseFloat(quantity || 0) * (orderType === 'MARKET' ? activePrice : parseFloat(limitPrice || activePrice))} 
+              sentimentTag={sentimentTag}
+              onTiltCritical={(score) => setTiltCriticalScore(score)}
+            />
+
             {/* 1. SIDE */}
             <div className="mb-8">
               <label className="block text-[9px] font-mono text-gray-500 uppercase tracking-widest mb-3">Side</label>
@@ -503,6 +522,29 @@ export const TerminalPage = () => {
                     <option value="Neutral" className="bg-[#02040a]">Neutral</option>
                   </select>
                 </div>
+                
+                {/* FRICTION UI (Only shown when tilted) */}
+                <AnimatePresence>
+                  {tiltCriticalScore > 70 && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="pt-4 mt-2 border-t border-rose-900/30"
+                    >
+                      <label className="block text-[9px] font-mono text-rose-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                        <ShieldAlert className="w-3 h-3" /> Forced Reflection Active
+                      </label>
+                      <textarea
+                        value={frictionReason}
+                        onChange={(e) => setFrictionReason(e.target.value)}
+                        placeholder="Why are you taking this trade? (min 10 chars)"
+                        className="w-full bg-[#050812] border border-rose-900/50 text-xs text-gray-300 font-sans p-3 outline-none focus:border-rose-500 transition-colors rounded-none resize-none h-20"
+                        required={tiltCriticalScore > 70}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
               </div>
 

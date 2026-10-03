@@ -2,6 +2,7 @@ import numpy as np
 from datetime import datetime, timedelta
 import pickle
 import os
+import random
 
 MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'behavioral_ml_model.pkl')
 
@@ -155,6 +156,171 @@ class BehavioralEngine:
                 'ret_5': round(float(ret_5), 4)
             },
             'summary': flags[0]['description'] if has_risk else ml_summary
+        }
+
+    def compute_tilt_score(self, user_trades, current_trade_value, sentiment_tag='Neutral'):
+        """Computes a real-time tilt score (0-100) based on immediate past trading activity."""
+        if not user_trades or len(user_trades) == 0:
+            return 0
+            
+        sorted_trades = sorted(user_trades, key=lambda x: str(x.get('timestamp') or ''), reverse=True)
+        now = datetime.now()
+        
+        # 1. Time since last trade
+        last_trade = sorted_trades[0]
+        try:
+            last_time = datetime.strptime(str(last_trade.get('timestamp')).split('.')[0], '%Y-%m-%d %H:%M:%S')
+            time_gap_mins = (now - last_time).total_seconds() / 60.0
+        except:
+            time_gap_mins = 60.0
+            
+        # 2. Recent loss streak
+        recent_pnl = [float(t.get('pnl', 0.0)) for t in sorted_trades[:3] if t.get('status') == 'CLOSED']
+        consecutive_losses = 0
+        for pnl in recent_pnl:
+            if pnl < 0:
+                consecutive_losses += 1
+            else:
+                break
+                
+        # 3. Size escalation
+        past_values = [float(t.get('total_value') or (float(t.get('quantity', 1)) * float(t.get('price', 100.0)))) for t in sorted_trades[:5]]
+        avg_position_val = np.mean(past_values) if past_values else current_trade_value
+        size_ratio = current_trade_value / (avg_position_val + 1e-9) if avg_position_val > 0 else 1.0
+        
+        # Calculate Base Score
+        score = 0
+        
+        # Time pressure (Max 30 points)
+        if time_gap_mins < 5: score += 30
+        elif time_gap_mins < 15: score += 20
+        elif time_gap_mins < 30: score += 10
+        
+        # Loss Streak (Max 40 points)
+        score += min(40, consecutive_losses * 15)
+        
+        # Size Escalation (Max 30 points)
+        if size_ratio > 2.0: score += 30
+        elif size_ratio > 1.5: score += 20
+        elif size_ratio > 1.2: score += 10
+        
+        # Volatility multiplier
+        if sentiment_tag in ['High Volatility', 'Bearish Volatility', 'Bearish']:
+            score = int(score * 1.2)
+            
+        return min(100, max(0, score))
+
+    def generate_behavioral_twin_projection(self, user_trades):
+        """
+        Monte Carlo projection of user's account 30 days forward.
+        Path A: Continuing current habits (Current You)
+        Path B: Following rules (Disciplined You)
+        """
+        if not user_trades or len(user_trades) < 3:
+            return None
+            
+        closed_trades = [t for t in user_trades if t.get('status') == 'CLOSED']
+        if not closed_trades:
+            return None
+            
+        pnls = [float(t.get('pnl', 0.0)) for t in closed_trades]
+        win_pnls = [p for p in pnls if p > 0]
+        loss_pnls = [p for p in pnls if p <= 0]
+        
+        avg_win = np.mean(win_pnls) if win_pnls else 200.0
+        avg_loss = np.mean(loss_pnls) if loss_pnls else -250.0
+        win_rate = len(win_pnls) / len(pnls) if pnls else 0.45
+        
+        # Assess revenge trading frequency and cost
+        revenge_losses = []
+        for i in range(len(closed_trades) - 1):
+            if float(closed_trades[i+1].get('pnl', 0.0)) < 0:
+                try:
+                    t1 = datetime.strptime(str(closed_trades[i+1]['timestamp']).split('.')[0], '%Y-%m-%d %H:%M:%S')
+                    t2 = datetime.strptime(str(closed_trades[i]['timestamp']).split('.')[0], '%Y-%m-%d %H:%M:%S')
+                    if (t2 - t1).total_seconds() / 60.0 < 20.0:
+                        revenge_losses.append(float(closed_trades[i].get('pnl', 0.0)))
+                except: pass
+                
+        revenge_freq = len(revenge_losses) / len(loss_pnls) if loss_pnls else 0.2
+        avg_revenge_loss = np.mean(revenge_losses) if revenge_losses else (avg_loss * 1.5)
+        
+        # Assess position sizing escalation cost
+        escalation_losses = []
+        past_values = [float(t.get('total_value') or (float(t.get('quantity', 1)) * float(t.get('price', 100.0)))) for t in closed_trades]
+        avg_size = np.mean(past_values) if past_values else 10000.0
+        for t in closed_trades:
+            t_size = float(t.get('total_value') or (float(t.get('quantity', 1)) * float(t.get('price', 100.0))))
+            if t_size > avg_size * 1.2 and float(t.get('pnl', 0.0)) < 0:
+                escalation_losses.append(float(t.get('pnl', 0.0)))
+                
+        escalation_freq = len(escalation_losses) / len(pnls) if pnls else 0.1
+        avg_escalation_loss = np.mean(escalation_losses) if escalation_losses else (avg_loss * 1.8)
+        
+        # 30-day projection (assuming 3 trades per day = 90 trades)
+        days = 30
+        trades_per_day = max(1, min(10, len(pnls) / 7.0)) # estimate based on history, bounded
+        total_future_trades = int(days * trades_per_day)
+        
+        # Baseline (You Now) - 1000 simulations
+        current_you_sims = []
+        disciplined_you_sims = []
+        
+        for _ in range(100):
+            current_path = [0]
+            disciplined_path = [0]
+            
+            for _ in range(total_future_trades):
+                # Current You
+                if random.random() < revenge_freq:
+                    current_path.append(current_path[-1] + random.gauss(avg_revenge_loss, abs(avg_revenge_loss)*0.2))
+                elif random.random() < escalation_freq:
+                    current_path.append(current_path[-1] + random.gauss(avg_escalation_loss, abs(avg_escalation_loss)*0.2))
+                else:
+                    if random.random() < win_rate:
+                        current_path.append(current_path[-1] + random.gauss(avg_win, abs(avg_win)*0.2))
+                    else:
+                        current_path.append(current_path[-1] + random.gauss(avg_loss, abs(avg_loss)*0.2))
+                        
+                # Disciplined You (No revenge, no escalation, slightly better win rate from patience)
+                disc_win_rate = min(0.65, win_rate * 1.1)
+                disc_avg_loss = avg_loss * 0.8 # tighter stop losses
+                
+                if random.random() < disc_win_rate:
+                    disciplined_path.append(disciplined_path[-1] + random.gauss(avg_win, abs(avg_win)*0.2))
+                else:
+                    disciplined_path.append(disciplined_path[-1] + random.gauss(disc_avg_loss, abs(disc_avg_loss)*0.2))
+                    
+            current_you_sims.append(current_path)
+            disciplined_you_sims.append(disciplined_path)
+            
+        # Get median paths
+        current_median = np.median(current_you_sims, axis=0)
+        disciplined_median = np.median(disciplined_you_sims, axis=0)
+        
+        # Format for charts
+        projection_data = []
+        for i in range(len(current_median)):
+            if i % int(max(1, trades_per_day)) == 0: # sample daily
+                day = i // int(max(1, trades_per_day))
+                projection_data.append({
+                    'day': f'Day {day}',
+                    'current_you': round(current_median[i], 2),
+                    'disciplined_you': round(disciplined_median[i], 2)
+                })
+                
+        final_difference = disciplined_median[-1] - current_median[-1]
+        
+        return {
+            'projection_data': projection_data,
+            'days': days,
+            'final_difference': round(final_difference, 2),
+            'current_final': round(current_median[-1], 2),
+            'disciplined_final': round(disciplined_median[-1], 2),
+            'metrics': {
+                'revenge_freq_pct': round(revenge_freq * 100, 1),
+                'escalation_freq_pct': round(escalation_freq * 100, 1)
+            }
         }
 
     def get_full_behavioral_profile(self, user_trades):
@@ -408,7 +574,8 @@ class BehavioralEngine:
             'insights': insights,
             'layman_brief': layman_brief,
             'improvements': improvements,
-            'trade_audits': trade_audits
+            'trade_audits': trade_audits,
+            'counterfactual_savings': round(sum([v['pnl'] for k, v in tod_metrics.items() if v['pnl'] < 0]) * -1 + (avg_loss_pnl * revenge_count) + (avg_loss_pnl * (2.0 - rrr) if rrr < 2.0 else 0), 2)
         }
 
 behavioral_engine = BehavioralEngine()

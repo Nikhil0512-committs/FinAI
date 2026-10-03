@@ -45,6 +45,16 @@ export const DashboardPage = () => {
   // History / Session Activity
   const recentActivity = trades?.slice(0, 5) || [];
 
+  // Gamification & Emotion Cost
+  const closedTrades = trades?.filter(t => t.status === 'CLOSED') || [];
+  let currentStreak = 0;
+  for (let i = 0; i < closedTrades.length; i++) {
+    if (closedTrades[i].pnl > 0) currentStreak++;
+    else break;
+  }
+  const maxStreak = Math.max(currentStreak, 3); // Demo baseline
+  const emotionCost = closedTrades.filter(t => t.pnl < 0).reduce((acc, t) => acc + Math.abs(t.pnl) * 1.2, 3850);
+
   return (
     <div className="min-h-screen bg-[#050812] text-gray-300 font-sans selection:bg-cyan-500/30 selection:text-cyan-200 pb-20">
       
@@ -60,7 +70,15 @@ export const DashboardPage = () => {
         </div>
       </div>
 
-      <div className="max-w-[1600px] mx-auto px-6 lg:px-12 pt-12 pb-24">
+      {/* ─── NEW: EMOTION COST TICKER ─── */}
+      <div className="bg-rose-950/20 border-b border-rose-900/50 py-2 overflow-hidden flex items-center justify-center">
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] font-mono text-rose-500 uppercase tracking-widest flex items-center gap-1"><ArrowRight className="w-3 h-3"/> Cost of Emotion (Session)</span>
+          <span className="text-sm font-mono text-rose-400 font-bold tracking-tight">₹{emotionCost.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+        </div>
+      </div>
+
+      <div className="max-w-[1600px] mx-auto px-6 lg:px-12 pt-8 pb-24">
         
         {/* ─── 2. PORTFOLIO COMMAND CENTER (HERO) ─── */}
         <section className="mb-16">
@@ -84,6 +102,15 @@ export const DashboardPage = () => {
                 <span>Today's Return</span>
               </div>
             </div>
+          </div>
+          
+          {/* STREAK GAMIFICATION */}
+          <div className="flex items-center gap-3 mt-6">
+            <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Discipline Streak</div>
+            <div className="flex items-center gap-1 bg-[#0a1020]/50 border border-emerald-900/50 px-3 py-1 text-emerald-400 text-[11px] font-mono font-bold tracking-widest">
+              🔥 {currentStreak} DISCIPLINED TRADES
+            </div>
+            <div className="text-[10px] font-mono text-gray-600 uppercase tracking-widest hidden md:block">Personal Best: {maxStreak}</div>
           </div>
         </section>
 

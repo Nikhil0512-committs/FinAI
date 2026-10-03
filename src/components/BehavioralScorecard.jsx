@@ -26,6 +26,7 @@ import {
   AlertTriangle,
   Sparkles
 } from 'lucide-react';
+import { BehavioralTwin } from './BehavioralTwin';
 
 const DisciplineRing = ({ score }) => {
   const radius = 90;
@@ -131,6 +132,8 @@ export const BehavioralScorecard = () => {
     { subject: 'Hold Balance', A: metrics.holding_balance, fullMark: 100 },
     { subject: 'FOMO Resist', A: metrics.fomo_resistance, fullMark: 100 },
   ];
+  
+  const counterfactualSavings = profileData?.counterfactual_savings || 0;
 
   return (
     <div className="min-h-screen bg-[#050811] text-gray-300 font-sans selection:bg-cyan-500/30 selection:text-cyan-200 pb-20">
@@ -447,7 +450,7 @@ export const BehavioralScorecard = () => {
               <div>
                 <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-2">03 &middot; Loss Prevention Impact</div>
                 <div className="text-6xl md:text-7xl font-mono font-light text-emerald-400 tabular-nums tracking-tighter">
-                  +₹{((tradesAnalyzed || 1) * 3850).toLocaleString()}
+                  +₹{counterfactualSavings.toLocaleString()}
                 </div>
                 <div className="text-[11px] font-sans text-gray-400 mt-2 max-w-sm">
                   Estimated money saved by following discipline rules (cool-down periods & cutting losses).
@@ -460,6 +463,11 @@ export const BehavioralScorecard = () => {
                <div className="text-sm font-mono text-emerald-400 uppercase tracking-widest">Active Protection</div>
             </div>
           </div>
+        </section>
+
+        {/* ─── NEW: BEHAVIORAL TWIN SIMULATOR ─── */}
+        <section className="mb-16">
+           <BehavioralTwin />
         </section>
 
         {/* ─── 4. BEHAVIORAL FINGERPRINT & COMMAND PANEL ─── */}

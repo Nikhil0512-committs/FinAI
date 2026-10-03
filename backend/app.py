@@ -4,10 +4,16 @@ import json
 import uvicorn
 import psycopg2
 import psycopg2.extras
-from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Set
+import jwt
+from datetime import datetime, timedelta
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from database import db
 from behavioral_engine import behavioral_engine
@@ -25,6 +31,7 @@ app = FastAPI(
     description="AI Market Intelligence & Paper-Trading Behavioral Coach API",
     version="6.0.0"
 )
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -33,6 +40,34 @@ app.add_middleware(
     allow_headers=["*"],
     max_age=86400,
 )
+
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+SECRET_KEY = "finai_hackathon_super_secret"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 1440
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+
+def create_access_token(data: dict, expires_delta: timedelta = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return user_id
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 # ─── High-Speed WebSocket Connection Manager ───
 class WebSocketManager:
@@ -268,23 +303,27 @@ def get_candles(symbol: str, timeframe: str = Query('5m', enum=['1m', '5m', '15m
     return db.get_stock_candles(symbol, timeframe=timeframe, limit=limit)
 
 @app.post("/api/auth/register")
-def register_user(req: RegisterRequest):
+@limiter.limit("5/minute")
+def register_user(request: Request, req: RegisterRequest):
     try:
         user = db.register_user(req.username, req.email, req.password)
-        return {"status": "SUCCESS", "user": user}
+        access_token = create_access_token(data={"sub": user["user_id"]}, expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+        return {"status": "SUCCESS", "user": user, "token": access_token}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/api/auth/login")
-def login_user(req: LoginRequest):
+@limiter.limit("10/minute")
+def login_user(request: Request, req: LoginRequest):
     try:
         user = db.authenticate_user(req.username, req.password)
-        return {"status": "SUCCESS", "user": user}
+        access_token = create_access_token(data={"sub": user["user_id"]}, expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+        return {"status": "SUCCESS", "user": user, "token": access_token}
     except Exception as e:
         raise HTTPException(status_code=401, detail=str(e))
 
 @app.get("/api/portfolio")
-def get_portfolio(user_id: str = 'default_user'):
+def get_portfolio(user_id: str = Depends(get_current_user)):
     db.process_sl_tp_triggers()
     db.process_amo_executions(user_id)
     db.process_eod_square_off(user_id)
@@ -302,7 +341,8 @@ def get_portfolio(user_id: str = 'default_user'):
     }
 
 @app.post("/api/trade/evaluate")
-def evaluate_trade(req: EvaluateTradeRequest):
+def evaluate_trade(req: EvaluateTradeRequest, user_id: str = Depends(get_current_user)):
+    req.user_id = user_id
     history = db.get_trade_history(req.user_id)
     pending = req.dict()
     market_features = db.get_behavioral_market_features(req.symbol)
@@ -321,7 +361,8 @@ def evaluate_trade(req: EvaluateTradeRequest):
     }
 
 @app.post("/api/trade/execute")
-async def execute_trade(req: ExecuteTradeRequest):
+async def execute_trade(req: ExecuteTradeRequest, user_id: str = Depends(get_current_user)):
+    req.user_id = user_id
     # Ultra-fast zero-latency price determination
     exec_price = float(req.price) if (req.price is not None and float(req.price) > 0) else None
     if exec_price is None:
@@ -398,11 +439,11 @@ async def close_trade(req: CloseTradeRequest):
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/api/trades")
-def get_trades(user_id: str = 'default_user'):
+def get_trades(user_id: str = Depends(get_current_user)):
     return {"trades": db.get_trade_history(user_id)}
 
 @app.get("/api/behavioral-profile")
-def get_behavioral_profile(user_id: str = 'default_user'):
+def get_behavioral_profile(user_id: str = Depends(get_current_user)):
     try:
         trades = db.get_trade_history(user_id)
         profile = behavioral_engine.get_full_behavioral_profile(trades)

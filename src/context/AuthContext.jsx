@@ -17,6 +17,7 @@ export const AuthProvider = ({ children }) => {
     return { user_id: 'usr_guest', username: 'Guest Trader', email: 'guest@finai.io' };
   });
 
+  const [token, setToken] = useState(() => localStorage.getItem('finai_token') || null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const login = async (username, password) => {
@@ -29,7 +30,9 @@ export const AuthProvider = ({ children }) => {
       if (res.ok) {
         const data = await res.json();
         setUser(data.user);
+        setToken(data.token);
         localStorage.setItem('finai_user', JSON.stringify(data.user));
+        localStorage.setItem('finai_token', data.token);
         setIsAuthModalOpen(false);
         return { success: true, user: data.user };
       } else {
@@ -51,7 +54,9 @@ export const AuthProvider = ({ children }) => {
       if (res.ok) {
         const data = await res.json();
         setUser(data.user);
+        setToken(data.token);
         localStorage.setItem('finai_user', JSON.stringify(data.user));
+        localStorage.setItem('finai_token', data.token);
         setIsAuthModalOpen(false);
         return { success: true, user: data.user };
       } else {
@@ -65,7 +70,9 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     setUser({ user_id: 'usr_guest', username: 'Guest Trader', email: 'guest@finai.io', isGuest: true });
+    setToken(null);
     localStorage.removeItem('finai_user');
+    localStorage.removeItem('finai_token');
   };
 
   const isAuthenticated = Boolean(user && user.user_id && user.user_id !== 'usr_guest' && !user.isGuest);
@@ -74,6 +81,7 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider
       value={{
         user,
+        token,
         userId: user?.user_id || 'usr_guest',
         isAuthenticated,
         login,

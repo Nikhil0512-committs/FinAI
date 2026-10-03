@@ -75,7 +75,7 @@ const DisciplineRing = ({ score }) => {
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
 export const BehavioralScorecard = () => {
-  const { userId } = useAuth();
+  const { userId, token } = useAuth();
   const { 
     portfolio, 
     tradeCount, 
@@ -88,10 +88,15 @@ export const BehavioralScorecard = () => {
 
   useEffect(() => {
     const fetchProfile = async () => {
+      if (!token) {
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       try {
-        const activeUser = userId || 'usr_guest';
-        const res = await fetch(`${API_BASE}/api/behavioral-profile?user_id=${encodeURIComponent(activeUser)}`);
+        const res = await fetch(`${API_BASE}/api/behavioral-profile`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
         if (res.ok) {
           const data = await res.json();
           setProfileData(data);

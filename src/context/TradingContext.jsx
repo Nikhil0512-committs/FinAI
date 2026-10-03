@@ -6,7 +6,7 @@ const API_BASE = import.meta.env.VITE_API_URL || "";
 const TradingContext = createContext();
 
 export const TradingProvider = ({ children }) => {
-  const { user, userId } = useAuth();
+  const { user, userId, token } = useAuth();
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [demoInitializationState, setDemoInitializationState] = useState('IDLE');
   const [selectedStock, setSelectedStock] = useState('ADANIENT');
@@ -39,10 +39,12 @@ export const TradingProvider = ({ children }) => {
   const [coolingOffTimer, setCoolingOffTimer] = useState(null); // seconds left
 
   // Fetch initial stocks and portfolio
-  const fetchPortfolio = async (uid = userId) => {
+  const fetchPortfolio = async () => {
+    if (!token) return;
     try {
-      const activeUser = uid || 'usr_guest';
-      const res = await fetch(`${API_BASE}/api/portfolio?user_id=${encodeURIComponent(activeUser)}`);
+      const res = await fetch(`${API_BASE}/api/portfolio`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (res.ok) {
         const data = await res.json();
         setPortfolio(data.portfolio);
@@ -55,10 +57,12 @@ export const TradingProvider = ({ children }) => {
     }
   };
 
-  const fetchTrades = async (uid = userId) => {
+  const fetchTrades = async () => {
+    if (!token) return;
     try {
-      const activeUser = uid || 'usr_guest';
-      const res = await fetch(`${API_BASE}/api/trades?user_id=${encodeURIComponent(activeUser)}`);
+      const res = await fetch(`${API_BASE}/api/trades`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (res.ok) {
         const data = await res.json();
         setTrades(data.trades);
@@ -409,7 +413,10 @@ export const TradingProvider = ({ children }) => {
     try {
       const res = await fetch(`${API_BASE}/api/trade/evaluate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(orderParams)
       });
 
@@ -466,7 +473,10 @@ export const TradingProvider = ({ children }) => {
     try {
       const res = await fetch(`${API_BASE}/api/trade/execute`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ ...orderParams, accept_cooling_off: acceptCoolingOff })
       });
 

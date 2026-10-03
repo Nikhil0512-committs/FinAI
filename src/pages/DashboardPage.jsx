@@ -66,6 +66,27 @@ export const DashboardPage = () => {
     return s ? (s.price || 0) : 0;
   };
 
+  // Dynamic Portfolio Health Calculations
+  const exposureMap = {};
+  openPositions.forEach(pos => {
+    const ltp = Number(getLivePrice(pos.symbol) || pos.price || 0);
+    const qty = Number(pos.quantity || 0);
+    const val = ltp * qty;
+    exposureMap[pos.symbol] = (exposureMap[pos.symbol] || 0) + val;
+  });
+
+  const exposures = Object.entries(exposureMap)
+    .map(([sym, val]) => ({ sym, pct: (val / (investedAmount || 1)) * 100, val }))
+    .sort((a, b) => b.pct - a.pct);
+
+  const largestExposurePct = exposures.length > 0 ? exposures[0].pct : 0;
+  const riskConcentration = investedAmount > 0 ? largestExposurePct : 0;
+  const diversification = investedAmount > 0 ? Math.min(exposures.length * 25, 100) : 0;
+
+  const healthStatus = riskConcentration > 70 ? 'HIGH RISK' : (riskConcentration > 40 ? 'MODERATE RISK' : 'GOOD');
+  const healthColor = riskConcentration > 70 ? 'text-rose-400' : (riskConcentration > 40 ? 'text-amber-400' : 'text-emerald-400');
+  const healthText = riskConcentration > 70 ? 'Portfolio is highly concentrated. High exposure to single-asset volatility.' : (riskConcentration > 40 ? 'Moderate diversification. Capital is concentrated in top holdings.' : 'Portfolio is well diversified with moderate capital utilization and low concentration risk.');
+
   return (
     <div className="min-h-screen bg-[#050812] text-gray-300 font-sans selection:bg-cyan-500/30 selection:text-cyan-200 pb-20">
       
@@ -287,25 +308,25 @@ export const DashboardPage = () => {
 
                 <div className="space-y-4">
                   {[
-                    { label: 'Capital Utilization', val: 42, color: 'bg-cyan-500' },
-                    { label: 'Diversification', val: 75, color: 'bg-emerald-500' },
-                    { label: 'Liquidity', val: 100, color: 'bg-blue-500' },
-                    { label: 'Risk Concentration', val: 60, color: 'bg-amber-500' }
+                    { label: 'Capital Utilization', val: Math.min(utilizationPct, 100), color: 'bg-cyan-500' },
+                    { label: 'Diversification', val: diversification, color: 'bg-emerald-500' },
+                    { label: 'Liquidity', val: Math.min(cashPct, 100), color: 'bg-blue-500' },
+                    { label: 'Risk Concentration', val: riskConcentration, color: riskConcentration > 60 ? 'bg-rose-500' : (riskConcentration > 40 ? 'bg-amber-500' : 'bg-emerald-500') }
                   ].map(factor => (
                     <div key={factor.label}>
                       <div className="text-[9px] font-mono text-gray-500 uppercase tracking-widest mb-2 flex justify-between">
                         <span>{factor.label}</span>
                       </div>
                       <div className="h-1.5 w-full bg-gray-900 border border-gray-800">
-                        <div className={`h-full ${factor.color}`} style={{ width: `${factor.val}%` }} />
+                        <div className={`h-full ${factor.color} transition-all duration-500`} style={{ width: `${factor.val}%` }} />
                       </div>
                     </div>
                   ))}
                 </div>
 
                 <div className="pt-4 mt-2 border-t border-gray-900">
-                  <div className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest mb-1">Health Status: GOOD</div>
-                  <div className="text-xs font-sans text-gray-500 leading-relaxed">Portfolio is liquid with moderate capital utilization. Low concentration risk.</div>
+                  <div className={`text-[10px] font-mono uppercase tracking-widest mb-1 ${healthColor}`}>Health Status: {healthStatus}</div>
+                  <div className="text-xs font-sans text-gray-500 leading-relaxed">{healthText}</div>
                 </div>
 
               </div>
@@ -316,27 +337,23 @@ export const DashboardPage = () => {
               <h2 className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-6">Portfolio Exposure</h2>
               <div className="border border-gray-900 bg-[#0a1020]/30 p-8">
                 <div className="space-y-4 font-mono text-[11px] mb-8">
-                  {[
-                    { sym: 'ADANIENT', pct: 38 },
-                    { sym: 'TCS', pct: 24 },
-                    { sym: 'INFY', pct: 18 },
-                    { sym: 'RELIANCE', pct: 12 },
-                    { sym: 'OTHER', pct: 8 }
-                  ].map(exp => (
+                  {exposures.length > 0 ? exposures.slice(0, 5).map(exp => (
                     <div key={exp.sym} className="flex items-center gap-4">
-                      <div className="w-20 text-gray-400">{exp.sym}</div>
+                      <div className="w-20 text-gray-400 truncate">{exp.sym}</div>
                       <div className="flex-1 h-2 bg-gray-900 border border-gray-800">
-                        <div className="h-full bg-cyan-800" style={{ width: `${exp.pct}%` }} />
+                        <div className="h-full bg-cyan-800 transition-all duration-500" style={{ width: `${exp.pct}%` }} />
                       </div>
-                      <div className="w-10 text-right tabular-nums text-white">{exp.pct}%</div>
+                      <div className="w-10 text-right tabular-nums text-white">{exp.pct.toFixed(0)}%</div>
                     </div>
-                  ))}
+                  )) : (
+                    <div className="text-gray-500 italic text-center py-4">No active positions</div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 pt-6 border-t border-gray-900">
                   <div>
                     <div className="text-[9px] font-mono text-gray-600 uppercase tracking-widest mb-1">Largest Position</div>
-                    <div className="text-xs font-mono text-white">ADANIENT <span className="text-gray-500 ml-1">38%</span></div>
+                    <div className="text-xs font-mono text-white">{exposures.length > 0 ? exposures[0].sym : 'NONE'} <span className="text-gray-500 ml-1">{exposures.length > 0 ? exposures[0].pct.toFixed(0) : 0}%</span></div>
                   </div>
                   <div>
                     <div className="text-[9px] font-mono text-gray-600 uppercase tracking-widest mb-1">Gross Exposure</div>

@@ -31,7 +31,6 @@ app = FastAPI(
     description="AI Market Intelligence & Paper-Trading Behavioral Coach API",
     version="6.0.0"
 )
-)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

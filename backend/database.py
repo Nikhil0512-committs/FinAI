@@ -1100,38 +1100,49 @@ class FinAIDatabase:
         else:
             sec_pe = sec_profile['sec_pe']
             sec_pb = sec_profile['sec_pb']
-            eps_val = round(ltp / sec_pe, 2)
-            bv_val = round(ltp / sec_pb, 1)
-            shares_cr = float((h % 400) + 50)
-            roe_val = sec_profile['roe']
-            roce_val = sec_profile['roce']
-            prom_val = sec_profile['prom']
-            fii_val = sec_profile['fii']
-            div_val = sec_profile['div']
-            beta_val = sec_profile['beta']
-            ev_val = sec_profile['ev_ebitda']
-            high_mult = 1.18 + ((h % 10) / 100.0)
-            low_mult = max(0.72, 0.84 - ((h % 10) / 100.0))
+            eps_val = None
+            bv_val = None
+            shares_cr = None
+            roe_val = "N/A"
+            roce_val = "N/A"
+            prom_val = "N/A"
+            fii_val = "N/A"
+            div_val = "N/A"
+            beta_val = "1.00"
+            ev_val = "N/A"
+            high_mult = 1.18
+            low_mult = 0.84
 
         # Dynamic calculations based on live LTP
         if eps_val and eps_val > 0:
             pe_val = round(ltp / eps_val, 1)
             peg_val = round(pe_val / 22.0, 2)
         else:
-            pe_val = "Loss / N/A"
+            pe_val = "N/A"
             peg_val = "N/A"
 
-        pb_val = round(ltp / max(1.0, bv_val), 2)
-        mcap_val = int(ltp * shares_cr)
-        scale_val = "Large Cap" if mcap_val >= 20000 else "Mid Cap" if mcap_val >= 5000 else "Small Cap"
-        high_price = round(ltp * high_mult, 2)
-        low_price = round(ltp * low_mult, 2)
+        if bv_val and bv_val > 0:
+            pb_val = round(ltp / bv_val, 2)
+        else:
+            pb_val = "N/A"
+
+        if shares_cr and shares_cr > 0:
+            mcap_val = int(ltp * shares_cr)
+            scale_val = "Large Cap" if mcap_val >= 20000 else "Mid Cap" if mcap_val >= 5000 else "Small Cap"
+            mcap_str = f"₹{mcap_val:,} Cr"
+        else:
+            scale_val = "N/A"
+            mcap_str = "N/A"
+
+        high_price = round(ltp * high_mult, 2) if ltp else "N/A"
+        low_price = round(ltp * low_mult, 2) if ltp else "N/A"
 
         return {
+            'is_mock': not bool(comp_data),
             'company_name': company_name,
             'sector': sector_name,
             'tagline': f"{sector_name} · Institutional Fundamental Analysis",
-            'market_cap': f"₹{mcap_val:,} Cr",
+            'market_cap': mcap_str,
             'scale': scale_val,
             'pe_ratio': str(pe_val),
             'sector_pe': str(sec_pe),
@@ -1143,13 +1154,13 @@ class FinAIDatabase:
             'promoter_holding': prom_val,
             'fii': fii_val,
             'fii_dii_holding': fii_val,
-            'fifty_two_week_high': f"₹{high_price:,.2f}",
-            'fifty_two_week_low': f"₹{low_price:,.2f}",
+            'fifty_two_week_high': f"₹{high_price:,.2f}" if high_price != "N/A" else "N/A",
+            'fifty_two_week_low': f"₹{low_price:,.2f}" if low_price != "N/A" else "N/A",
             'high_52w': high_price,
             'low_52w': low_price,
             'dividend_yield': div_val,
-            'book_value': f"₹{bv_val:,.2f}",
-            'eps': f"₹{eps_val:,.2f}",
+            'book_value': f"₹{bv_val:,.2f}" if bv_val else "N/A",
+            'eps': f"₹{eps_val:,.2f}" if eps_val else "N/A",
             'beta': str(beta_val),
             'ev_ebitda': str(ev_val),
             'delivery_pct': f"{round(45.0 + ((h % 200)/10.0), 1)}%"

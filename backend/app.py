@@ -486,11 +486,16 @@ def get_market_intelligence(symbol: str):
         real_fund = yfinance_engine.get_fundamentals(sym)
         if real_fund:
             merged = dict(db_fund)
+            is_mock = merged.pop('is_mock', False)
             for k, v in real_fund.items():
-                if v is not None and v != "N/A" and v != "0.00%":
+                if is_mock:
                     merged[k] = v
+                else:
+                    if v is not None and v != "N/A" and v != "0.00%":
+                        merged[k] = v
             data['fundamentals'] = merged
         else:
+            db_fund.pop('is_mock', None)
             data['fundamentals'] = db_fund
     except Exception as e:
         print(f"[App] Fundamentals merge exception for {sym}: {e}")
@@ -513,11 +518,16 @@ def get_fundamentals(symbol: str):
         real_fund = yfinance_engine.get_fundamentals(sym)
         if real_fund:
             merged = dict(db_fund)
+            is_mock = merged.pop('is_mock', False)
             for k, v in real_fund.items():
-                if v is not None and v != "N/A" and v != "0.00%":
+                if is_mock:
                     merged[k] = v
+                else:
+                    if v is not None and v != "N/A" and v != "0.00%":
+                        merged[k] = v
             fund_data = merged
         else:
+            db_fund.pop('is_mock', None)
             fund_data = db_fund
     except Exception:
         fund_data = db_fund

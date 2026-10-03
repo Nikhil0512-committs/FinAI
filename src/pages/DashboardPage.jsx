@@ -233,16 +233,18 @@ export const DashboardPage = () => {
                     </thead>
                     <tbody className="font-mono text-[11px]">
                       {openPositions.map((pos, idx) => {
-                        const ltp = getLivePrice(pos.symbol) || pos.price;
-                        const pnl = pos.type === 'BUY' ? (ltp - pos.price) * pos.quantity : (pos.price - ltp) * pos.quantity;
-                        const returnPct = (pnl / (pos.price * pos.quantity)) * 100;
+                        const ltp = Number(getLivePrice(pos.symbol) || pos.price || 0);
+                        const entryPrice = Number(pos.price || 0);
+                        const qty = Number(pos.quantity || 0);
+                        const pnl = pos.side === 'BUY' ? (ltp - entryPrice) * qty : (entryPrice - ltp) * qty;
+                        const returnPct = entryPrice > 0 ? (pnl / (entryPrice * qty)) * 100 : 0;
                         const isPositive = pnl >= 0;
                         return (
                           <tr key={idx} className="group border-b border-gray-900/50 hover:bg-[#0f1728] transition-colors">
                             <td className="py-3 px-4 text-white font-bold">{pos.symbol}</td>
-                            <td className="py-3 px-4"><span className={`px-1.5 py-0.5 border ${pos.type === 'BUY' ? 'text-emerald-400 border-emerald-900/50' : 'text-rose-400 border-rose-900/50'}`}>{pos.type === 'BUY' ? 'LONG' : 'SHORT'}</span></td>
-                            <td className="py-3 px-4 text-right tabular-nums text-gray-300">{pos.quantity}</td>
-                            <td className="py-3 px-4 text-right tabular-nums text-gray-400">₹{pos.price}</td>
+                            <td className="py-3 px-4"><span className={`px-1.5 py-0.5 border ${pos.side === 'BUY' ? 'text-emerald-400 border-emerald-900/50' : 'text-rose-400 border-rose-900/50'}`}>{pos.side === 'BUY' ? 'LONG' : 'SHORT'}</span></td>
+                            <td className="py-3 px-4 text-right tabular-nums text-gray-300">{qty}</td>
+                            <td className="py-3 px-4 text-right tabular-nums text-gray-400">₹{entryPrice.toFixed(2)}</td>
                             <td className="py-3 px-4 text-right tabular-nums text-white">₹{ltp.toFixed(2)}</td>
                             <td className={`py-3 px-4 text-right tabular-nums ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
                               {isPositive ? '+' : ''}₹{pnl.toFixed(2)}

@@ -349,7 +349,6 @@ export const FinAINavigation = ({ mode = "app" }) => {
               <TelemetryModule label="Cash" value={formatCurrency(portfolio.cash_balance)} />
               <TelemetryModule label="Portfolio" value={formatCurrency(portfolio.total_value)} />
               <GuestTrader />
-              <RunDemoButton />
             </div>
 
             {/* Auth / CTA / Demo */}

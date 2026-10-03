@@ -144,12 +144,22 @@ export const BehavioralScorecard = () => {
           <h1 className="text-[13px] font-mono text-white font-bold tracking-widest uppercase">FinAI Behavioral Scorecard</h1>
           <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mt-0.5">Quantitative Trader Psychology & Habits Analysis</div>
         </div>
-        <div className={`text-[10px] font-mono px-3 py-1 border uppercase tracking-widest ${
-          isUnlocked 
-            ? 'text-emerald-400 bg-emerald-950/20 border-emerald-900/50' 
-            : 'text-amber-400 bg-amber-950/20 border-amber-900/50'
-        }`}>
-          {isUnlocked ? 'Profile Calibrated' : `Calibration: ${tradesAnalyzed}/6 Trades`}
+        <div className="flex items-center gap-4">
+          <div className={`text-[10px] font-mono px-3 py-1 border uppercase tracking-widest ${
+            isUnlocked 
+              ? 'text-emerald-400 bg-emerald-950/20 border-emerald-900/50' 
+              : 'text-amber-400 bg-amber-950/20 border-amber-900/50'
+          }`}>
+            {isUnlocked ? 'Profile Calibrated' : `Calibration: ${tradesAnalyzed}/6 Trades`}
+          </div>
+          {isUnlocked && (
+            <button 
+              onClick={() => window.print()}
+              className="text-[10px] font-mono px-3 py-1 border border-cyan-900/50 text-cyan-400 bg-cyan-950/20 hover:bg-cyan-900/40 transition-colors uppercase tracking-widest flex items-center gap-2"
+            >
+              Export PDF
+            </button>
+          )}
         </div>
       </header>
 

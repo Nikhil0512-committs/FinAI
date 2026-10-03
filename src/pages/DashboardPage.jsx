@@ -8,7 +8,7 @@ import {
 import { ArrowRight, Clock, Crosshair, LayoutDashboard, TerminalSquare, BrainCircuit, History } from 'lucide-react';
 
 export const DashboardPage = () => {
-  const { portfolio, trades, disciplineScore, setSelectedStock, marketStatus } = useTrading();
+  const { portfolio, trades, disciplineScore, setSelectedStock, marketStatus, stockList } = useTrading();
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -34,13 +34,7 @@ export const DashboardPage = () => {
   const formatRupee = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(val || 0);
 
   // Watchlist Tape
-  const watchlist = [
-    { symbol: 'NIFTY 50', price: 24820.20, change: 0.84, range: '24,620–24,910' },
-    { symbol: 'SENSEX', price: 81240.10, change: 0.72, range: '80,940–81,480' },
-    { symbol: 'ADANIENT', price: 2988.68, change: -0.65, range: '2,960–3,020' },
-    { symbol: 'TCS', price: 3845.20, change: 0.42, range: '3,810–3,860' },
-    { symbol: 'INFY', price: 1505.30, change: -0.18, range: '1,490–1,520' },
-  ];
+  const watchlist = stockList?.slice(0, 5) || [];
 
   // History / Session Activity
   const recentActivity = trades?.slice(0, 5) || [];
@@ -52,8 +46,25 @@ export const DashboardPage = () => {
     if (closedTrades[i].pnl > 0) currentStreak++;
     else break;
   }
-  const maxStreak = Math.max(currentStreak, 3); // Demo baseline
-  const emotionCost = closedTrades.filter(t => t.pnl < 0).reduce((acc, t) => acc + Math.abs(t.pnl) * 1.2, 3850);
+  const maxStreak = trades?.reduce((acc, t) => {
+    if (t.status === 'CLOSED') {
+      if (t.pnl > 0) {
+        acc.current++;
+        acc.max = Math.max(acc.max, acc.current);
+      } else {
+        acc.current = 0;
+      }
+    }
+    return acc;
+  }, { current: 0, max: 0 }).max || 0;
+  
+  const emotionCost = closedTrades.filter(t => t.pnl < 0).reduce((acc, t) => acc + Math.abs(t.pnl) * 1.2, 0);
+
+  const getLivePrice = (sym) => {
+    if (!stockList) return 0;
+    const s = stockList.find(s => s.symbol === sym);
+    return s ? (s.price || 0) : 0;
+  };
 
   return (
     <div className="min-h-screen bg-[#050812] text-gray-300 font-sans selection:bg-cyan-500/30 selection:text-cyan-200 pb-20">
@@ -221,20 +232,30 @@ export const DashboardPage = () => {
                       </tr>
                     </thead>
                     <tbody className="font-mono text-[11px]">
-                      {openPositions.map((pos, idx) => (
-                        <tr key={idx} className="group border-b border-gray-900/50 hover:bg-[#0f1728] transition-colors">
-                          <td className="py-3 px-4 text-white font-bold">{pos.symbol}</td>
-                          <td className="py-3 px-4"><span className={`px-1.5 py-0.5 border ${pos.type === 'BUY' ? 'text-emerald-400 border-emerald-900/50' : 'text-rose-400 border-rose-900/50'}`}>{pos.type === 'BUY' ? 'LONG' : 'SHORT'}</span></td>
-                          <td className="py-3 px-4 text-right tabular-nums text-gray-300">{pos.quantity}</td>
-                          <td className="py-3 px-4 text-right tabular-nums text-gray-400">₹{pos.price}</td>
-                          <td className="py-3 px-4 text-right tabular-nums text-white">₹{pos.price}</td> {/* Mocking LTP */}
-                          <td className="py-3 px-4 text-right tabular-nums text-emerald-400">+₹0</td>
-                          <td className="py-3 px-4 text-right tabular-nums text-emerald-400">+0.00%</td>
-                          <td className="py-3 px-4 text-right">
-                            <Link to="/terminal" onClick={() => setSelectedStock(pos.symbol)} className="opacity-0 group-hover:opacity-100 text-[9px] text-cyan-400 hover:text-cyan-300 transition-opacity uppercase tracking-widest">View</Link>
-                          </td>
-                        </tr>
-                      ))}
+                      {openPositions.map((pos, idx) => {
+                        const ltp = getLivePrice(pos.symbol) || pos.price;
+                        const pnl = pos.type === 'BUY' ? (ltp - pos.price) * pos.quantity : (pos.price - ltp) * pos.quantity;
+                        const returnPct = (pnl / (pos.price * pos.quantity)) * 100;
+                        const isPositive = pnl >= 0;
+                        return (
+                          <tr key={idx} className="group border-b border-gray-900/50 hover:bg-[#0f1728] transition-colors">
+                            <td className="py-3 px-4 text-white font-bold">{pos.symbol}</td>
+                            <td className="py-3 px-4"><span className={`px-1.5 py-0.5 border ${pos.type === 'BUY' ? 'text-emerald-400 border-emerald-900/50' : 'text-rose-400 border-rose-900/50'}`}>{pos.type === 'BUY' ? 'LONG' : 'SHORT'}</span></td>
+                            <td className="py-3 px-4 text-right tabular-nums text-gray-300">{pos.quantity}</td>
+                            <td className="py-3 px-4 text-right tabular-nums text-gray-400">₹{pos.price}</td>
+                            <td className="py-3 px-4 text-right tabular-nums text-white">₹{ltp.toFixed(2)}</td>
+                            <td className={`py-3 px-4 text-right tabular-nums ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              {isPositive ? '+' : ''}₹{pnl.toFixed(2)}
+                            </td>
+                            <td className={`py-3 px-4 text-right tabular-nums ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              {isPositive ? '+' : ''}{returnPct.toFixed(2)}%
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <Link to="/terminal" onClick={() => setSelectedStock(pos.symbol)} className="opacity-0 group-hover:opacity-100 text-[9px] text-cyan-400 hover:text-cyan-300 transition-opacity uppercase tracking-widest">View</Link>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 ) : (

@@ -43,7 +43,7 @@ export const TerminalPage = () => {
   const [orderType, setOrderType] = useState('MARKET');
   const [quantity, setQuantity] = useState(25);
   const [limitPrice, setLimitPrice] = useState('');
-  const [sentimentTag, setSentimentTag] = useState('Bearish Volatility');
+  const [sentimentTag, setSentimentTag] = useState('Neutral');
   const [selectedIndicator, setSelectedIndicator] = useState('OFF');
   const [stopLoss, setStopLoss] = useState('');
   const [takeProfit, setTakeProfit] = useState('');

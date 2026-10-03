@@ -369,14 +369,18 @@ export const DashboardPage = () => {
                     </tr>
                   </thead>
                   <tbody className="font-mono text-[11px]">
-                    {watchlist.map(item => (
-                      <tr key={item.symbol} className="border-b border-gray-900/50 hover:bg-[#0f1728] transition-colors">
-                        <td className="py-3 px-4 text-white font-bold">{item.symbol}</td>
-                        <td className="py-3 px-4 text-right tabular-nums text-gray-300">{item.price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                        <td className={`py-3 px-4 text-right tabular-nums ${item.change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{item.change >= 0 ? '+' : ''}{item.change.toFixed(2)}%</td>
-                        <td className="py-3 px-4 text-right tabular-nums text-gray-500 hidden sm:table-cell">{item.range}</td>
-                      </tr>
-                    ))}
+                    {watchlist.map(item => {
+                      const price = Number(item.price || 0);
+                      const change = Number(item.change_pct || item.change || 0);
+                      return (
+                        <tr key={item.symbol} className="border-b border-gray-900/50 hover:bg-[#0f1728] transition-colors">
+                          <td className="py-3 px-4 text-white font-bold">{item.symbol}</td>
+                          <td className="py-3 px-4 text-right tabular-nums text-gray-300">{price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                          <td className={`py-3 px-4 text-right tabular-nums ${change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{change >= 0 ? '+' : ''}{change.toFixed(2)}%</td>
+                          <td className="py-3 px-4 text-right tabular-nums text-gray-500 hidden sm:table-cell">{item.range || 'N/A'}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

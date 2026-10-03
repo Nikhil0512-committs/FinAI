@@ -12,3 +12,7 @@ websockets
 xgboost
 dhanhq
 fyers_apiv3
+pyjwt
+passlib
+bcrypt
+slowapi

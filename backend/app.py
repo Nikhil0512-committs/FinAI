@@ -418,9 +418,9 @@ async def execute_trade(req: ExecuteTradeRequest, user_id: str = Depends(get_cur
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/api/trade/close")
-async def close_trade(req: CloseTradeRequest):
+async def close_trade(req: CloseTradeRequest, user_id: str = Depends(get_current_user)):
     try:
-        closed_trade = db.close_paper_trade(req.trade_code, req.exit_price)
+        closed_trade = db.close_paper_trade(req.trade_code, req.exit_price, user_id)
         
         # Publish settled trade to Kafka
         await kafka_engine.publish_event(KafkaTopic.TRADES_SETTLED, {
@@ -528,11 +528,11 @@ def get_market_heatmap():
     return {"sectors": rag_engine.get_market_heatmap()}
 
 @app.get("/api/keys")
-def get_keys():
+def get_keys(user_id: str = Depends(get_current_user)):
     return {"keys": db.get_api_keys()}
 
 @app.post("/api/keys")
-def save_keys(payload: ApiKeysPayload):
+def save_keys(payload: ApiKeysPayload, user_id: str = Depends(get_current_user)):
     data = payload.dict()
     for k, v in data.items():
         if v is not None:
@@ -540,7 +540,7 @@ def save_keys(payload: ApiKeysPayload):
     return {"status": "SUCCESS", "message": "API Keys saved successfully to SQLite database."}
 
 @app.post("/api/demo-seed")
-def seed_demo_data(user_id: str = 'default_user'):
+def seed_demo_data(user_id: str = Depends(get_current_user)):
     # Ensure portfolio exists
     db.get_portfolio(user_id)
     

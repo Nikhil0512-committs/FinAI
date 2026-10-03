@@ -184,7 +184,10 @@ export const TradingProvider = ({ children }) => {
 
   const fetchApiKeys = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/keys`);
+      if (!token) return;
+      const res = await fetch(`${API_BASE}/api/keys`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (res.ok) {
         const data = await res.json();
         setApiKeys(data.keys || {});
@@ -196,9 +199,13 @@ export const TradingProvider = ({ children }) => {
 
   const saveApiKeys = async (payload) => {
     try {
+      if (!token) return { success: false, error: 'Unauthorized' };
       const res = await fetch(`${API_BASE}/api/keys`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(payload)
       });
       if (res.ok) {
@@ -554,7 +561,10 @@ export const TradingProvider = ({ children }) => {
     try {
       const res = await fetch(`${API_BASE}/api/trade/close`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
         body: JSON.stringify({ trade_code: tradeCode, exit_price: exitPrice ? parseFloat(exitPrice) : null })
       });
       if (res.ok) {

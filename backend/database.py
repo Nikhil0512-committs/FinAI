@@ -1505,7 +1505,7 @@ class FinAIDatabase:
                 except Exception as e:
                     print(f"[FinAI EOD Error] Failed to auto square-off trade {t['trade_code']}: {e}")
 
-    def close_paper_trade(self, trade_code, exit_price=None):
+    def close_paper_trade(self, trade_code, exit_price=None, user_id=None):
       with self._db_lock:
         cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         cursor.execute("SELECT * FROM trades WHERE trade_code = %s", (trade_code,))
@@ -1513,6 +1513,9 @@ class FinAIDatabase:
         if not t:
             raise ValueError(f"Trade {trade_code} not found")
             
+        if user_id and t['user_id'] != user_id:
+            raise ValueError("Unauthorized: You do not have permission to close this trade.")
+
         if t['status'] == 'CLOSED':
             return dict(t)
 

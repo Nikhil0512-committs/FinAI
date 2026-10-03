@@ -1344,7 +1344,7 @@ class FinAIDatabase:
                     cash_adjustment = match_qty * price
                 else:
                     trade_pnl = (op_price - price) * match_qty
-                    cash_adjustment = - (match_qty * price)
+                    cash_adjustment = (match_qty * op_price) + trade_pnl
 
                 cursor.execute("UPDATE portfolio SET cash_balance = cash_balance + %s WHERE user_id = %s", (cash_adjustment, user_id))
 
@@ -1393,10 +1393,7 @@ class FinAIDatabase:
             """, (trade_code, user_id, symbol_upper, side_upper, remaining_qty, price, total_val, now, sentiment_tag, status, product_type, trade_order_type, sl_val, tp_val, rsi_14, vol_20, macd))
 
             if status == 'EXECUTED':
-                if side_upper == 'BUY':
-                    cursor.execute("UPDATE portfolio SET cash_balance = cash_balance - %s WHERE user_id = %s", (total_val, user_id))
-                else:
-                    cursor.execute("UPDATE portfolio SET cash_balance = cash_balance + %s WHERE user_id = %s", (total_val, user_id))
+                cursor.execute("UPDATE portfolio SET cash_balance = cash_balance - %s WHERE user_id = %s", (total_val, user_id))
 
             self.sqlite_conn.commit()
             return self.get_trade_by_code(trade_code)
@@ -1549,8 +1546,8 @@ class FinAIDatabase:
             cursor.execute("UPDATE portfolio SET cash_balance = cash_balance + %s WHERE user_id = %s", (cash_adjustment, user_id))
         else:
             pnl = (entry_price - exit_price) * qty
-            cash_adjustment = - (qty * exit_price)
-            cursor.execute("UPDATE portfolio SET cash_balance = cash_balance - %s WHERE user_id = %s", (qty * exit_price, user_id))
+            cash_adjustment = (qty * entry_price) + pnl
+            cursor.execute("UPDATE portfolio SET cash_balance = cash_balance + %s WHERE user_id = %s", (cash_adjustment, user_id))
             
         cursor.execute("""
             UPDATE trades 

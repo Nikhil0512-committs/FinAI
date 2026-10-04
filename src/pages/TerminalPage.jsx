@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTrading } from '../context/TradingContext';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,7 +12,7 @@ import {
   CartesianGrid 
 } from 'recharts';
 import { 
-  Star, MoreHorizontal, Maximize2, 
+  Star, MoreHorizontal, Maximize2, Minimize,
   Minus, Plus, Info, TrendingUp, TrendingDown, Clock, Activity, BarChart3, ChevronDown
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -40,6 +40,27 @@ export const TerminalPage = () => {
   const [activeTradeTab, setActiveTradeTab] = useState('Trade');
   const [bottomTab, setBottomTab] = useState('Positions');
   
+  const [fundamentals, setFundamentals] = useState(null);
+  const [isChartExpanded, setIsChartExpanded] = useState(false);
+
+  useEffect(() => {
+      const fetchIntel = async () => {
+          try {
+              const API_BASE = import.meta.env.VITE_API_URL || "";
+              const res = await fetch(`${API_BASE}/api/market-intelligence/${encodeURIComponent(selectedStock)}`);
+              if (res.ok) {
+                  const data = await res.json();
+                  setFundamentals(data.fundamentals || {});
+              } else {
+                  setFundamentals(null);
+              }
+          } catch (e) {
+              setFundamentals(null);
+          }
+      };
+      fetchIntel();
+  }, [selectedStock]);
+
   const activePrice = currentQuote?.price || 2816.80;
   const changePct = currentQuote?.change_pct || -2.98;
   const changeAmt = currentQuote?.change_amt || -86.45;
@@ -93,7 +114,7 @@ export const TerminalPage = () => {
   };
 
   return (
-    <div className="h-full flex flex-col gap-5 p-6 min-h-0">
+    <div className="min-h-full flex flex-col gap-5 p-6">
         
         {/* HEADER ASSET BAR */}
         <div className="flex items-center justify-between bg-[#131722] rounded-2xl p-5 border border-[#1C212D] shrink-0 shadow-sm">
@@ -128,10 +149,10 @@ export const TerminalPage = () => {
         </div>
         
         {/* MAIN PANELS ROW */}
-        <div className="flex gap-5 flex-1 min-h-[400px]">
+        <div className="flex gap-5 flex-1 min-h-[550px]">
             
             {/* LEFT CHART AREA */}
-            <div className="flex-1 flex flex-col bg-[#131722] rounded-2xl border border-[#1C212D] overflow-hidden shadow-sm">
+            <div className={isChartExpanded ? 'fixed inset-6 z-50 bg-[#131722] rounded-2xl border border-[#1C212D] flex flex-col shadow-2xl overflow-hidden' : 'flex-1 flex flex-col bg-[#131722] rounded-2xl border border-[#1C212D] overflow-hidden shadow-sm relative'}>
                 <div className="flex justify-between items-center p-5 border-b border-[#1C212D]">
                     <div className="flex items-center gap-6">
                         {['1d', '5d', '1m', '3m', '1y', '5y'].map((t) => (
@@ -146,7 +167,9 @@ export const TerminalPage = () => {
                         ))}
                     </div>
                     <div className="flex items-center gap-4 text-xs">
-                        <button className="p-1.5 hover:bg-[#1C212D] rounded"><Maximize2 className="w-4 h-4 text-gray-400" /></button>
+                        <button onClick={() => setIsChartExpanded(!isChartExpanded)} className="p-1.5 hover:bg-[#1C212D] rounded text-gray-400 hover:text-white transition-colors">
+                            {isChartExpanded ? <Minimize className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                        </button>
                         <div className="flex items-center gap-2 bg-[#1C212D] px-2.5 py-1 rounded-md">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#00E6A8] animate-pulse"></span>
                             <span className="text-[#00E6A8] font-bold text-[10px] tracking-wider uppercase">NSE • LIVE</span>
@@ -175,15 +198,15 @@ export const TerminalPage = () => {
                 {/* Metrics Below Chart */}
                 <div className="flex flex-wrap items-center justify-between gap-4 p-5 border-t border-[#1C212D] bg-[#0B0E14]/30">
                     {[
-                        {l: 'Open', v: `₹${(activePrice - 10).toFixed(2)}`},
-                        {l: 'High', v: `₹${(activePrice + 20).toFixed(2)}`, c: 'text-[#00E6A8]'},
-                        {l: 'Low', v: `₹${(activePrice - 30).toFixed(2)}`, c: 'text-rose-500'},
-                        {l: 'Prev Close', v: `₹${(activePrice - changeAmt).toFixed(2)}`},
-                        {l: 'Volume', v: '1.42 Cr'},
-                        {l: 'Market Cap', v: '₹3.24 L Cr'},
-                        {l: 'P/E', v: '107.6'},
-                        {l: '52W High', v: `₹${(activePrice * 1.3).toFixed(2)}`},
-                        {l: '52W Low', v: `₹${(activePrice * 0.7).toFixed(2)}`},
+                        {l: 'Open', v: fundamentals?.open ? `₹${parseFloat(fundamentals.open).toFixed(2)}` : `₹${(activePrice - 10).toFixed(2)}`},
+                        {l: 'High', v: fundamentals?.day_high ? `₹${parseFloat(fundamentals.day_high).toFixed(2)}` : `₹${(activePrice + 20).toFixed(2)}`, c: 'text-[#00E6A8]'},
+                        {l: 'Low', v: fundamentals?.day_low ? `₹${parseFloat(fundamentals.day_low).toFixed(2)}` : `₹${(activePrice - 30).toFixed(2)}`, c: 'text-rose-500'},
+                        {l: 'Prev Close', v: fundamentals?.prev_close ? `₹${parseFloat(fundamentals.prev_close).toFixed(2)}` : `₹${(activePrice - changeAmt).toFixed(2)}`},
+                        {l: 'Volume', v: fundamentals?.volume || '1.42 Cr'},
+                        {l: 'Market Cap', v: fundamentals?.market_cap || '₹3.24 L Cr'},
+                        {l: 'P/E', v: fundamentals?.pe_ratio || '107.6'},
+                        {l: '52W High', v: fundamentals?.high_52w ? `₹${parseFloat(String(fundamentals.high_52w).replace(/[^0-9.]/g, '')).toFixed(2)}` : `₹${(activePrice * 1.3).toFixed(2)}`},
+                        {l: '52W Low', v: fundamentals?.low_52w ? `₹${parseFloat(String(fundamentals.low_52w).replace(/[^0-9.]/g, '')).toFixed(2)}` : `₹${(activePrice * 0.7).toFixed(2)}`},
                     ].map(m => (
                         <div key={m.l} className="flex flex-col min-w-[60px]">
                             <span className="text-[11px] text-gray-500 mb-1.5 font-medium">{m.l}</span>

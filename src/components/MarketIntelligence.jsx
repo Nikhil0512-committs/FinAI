@@ -281,7 +281,7 @@ export const MarketIntelligence = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#000000] text-gray-300 font-sans flex flex-col pb-24 selection:bg-cyan-500/30">
+    <div className="w-full bg-[#000000] text-gray-300 font-sans flex flex-col pb-24 selection:bg-cyan-500/30">
       
       {/* ─── 1. ASSET HEADER & REAL-TIME STRIP ─── */}
       <header className="flex-none min-h-16 border-b border-gray-900 flex flex-wrap items-center justify-between px-6 lg:px-10 py-3 gap-4 z-20 bg-[#030712]">
@@ -341,26 +341,26 @@ export const MarketIntelligence = () => {
             <section className="grid grid-cols-1 lg:grid-cols-12 gap-px bg-gray-900 border border-gray-900 shadow-2xl">
               
               {/* Main Directional Signal */}
-              <div className="lg:col-span-8 bg-[#000000] p-8 md:p-12 flex flex-col md:flex-row items-center justify-between relative overflow-hidden">
-                <div className="z-10 text-center md:text-left mb-8 md:mb-0">
+              <div className="lg:col-span-8 bg-[#000000] p-6 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
+                <div className="z-10 text-center md:text-left">
                   <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
                     <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
                     <span className="text-[11px] font-mono text-gray-500 uppercase tracking-widest">FinAI Market Thesis &middot; {selectedStock}</span>
                   </div>
-                  <div className="mt-6 flex flex-col md:flex-row items-center gap-6">
+                  <div className="mt-6 flex flex-col md:flex-row items-center gap-4 md:gap-6">
                     <motion.div 
                       initial={{ y: 20, rotateZ: -15, opacity: 0 }}
                       animate={{ y: 0, rotateZ: isBullish ? 0 : isNeutral ? 90 : 180, opacity: 1 }}
                       transition={{ duration: 0.6, ease: "easeOut" }}
-                      className={`relative ${isBullish ? 'text-emerald-400' : isNeutral ? 'text-cyan-400' : 'text-rose-400'}`}
+                      className={`relative shrink-0 ${isBullish ? 'text-emerald-400' : isNeutral ? 'text-cyan-400' : 'text-rose-400'}`}
                     >
-                      <ArrowUpRight className="w-28 h-28 md:w-36 md:h-36 filter drop-shadow-[0_0_25px_currentColor]" strokeWidth={1.2} />
+                      <ArrowUpRight className="w-20 h-20 md:w-32 md:h-32 filter drop-shadow-[0_0_25px_currentColor]" strokeWidth={1.2} />
                     </motion.div>
-                    <div>
-                      <h2 className={`text-6xl md:text-7xl font-black tracking-tighter ${isBullish ? 'text-emerald-400' : isNeutral ? 'text-cyan-400' : 'text-rose-400'}`}>
+                    <div className="min-w-0">
+                      <h2 className={`text-4xl md:text-6xl xl:text-7xl font-black tracking-tighter truncate ${isBullish ? 'text-emerald-400' : isNeutral ? 'text-cyan-400' : 'text-rose-400'}`}>
                         {pred.stance}
                       </h2>
-                      <div className="text-sm md:text-lg font-mono text-white mt-2 flex items-center justify-center md:justify-start gap-3">
+                      <div className="text-sm md:text-base font-mono text-white mt-2 flex flex-wrap items-center justify-center md:justify-start gap-3">
                         <span>CONVICTION: <strong className="text-cyan-400">{pred.conviction}</strong></span>
                         <span>&middot;</span>
                         <span className="text-gray-400">TF: {timeframe}</span>
@@ -368,7 +368,7 @@ export const MarketIntelligence = () => {
                     </div>
                   </div>
                 </div>
-                <div className="z-10">
+                <div className="z-10 shrink-0">
                   <ConfidenceRing percentage={pred.confidence_pct} colorClass={isBullish ? "text-emerald-400" : isNeutral ? "text-cyan-400" : "text-rose-400"} glowColor={isBullish ? "rgba(0, 255, 136, 0.2)" : "rgba(255, 0, 85, 0.2)"} />
                 </div>
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-cyan-900/10 via-[#000000]/0 to-[#000000]/0 pointer-events-none" />

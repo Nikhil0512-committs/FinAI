@@ -231,68 +231,142 @@ export const TerminalPage = () => {
                     ))}
                 </div>
                 
-                <div className="flex gap-2 mb-6 bg-[#1C212D] p-1 rounded-xl border border-gray-800">
-                    <button 
-                        onClick={() => setOrderSide('BUY')}
-                        className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${orderSide === 'BUY' ? 'bg-[#00E6A8] text-[#0B0E14] shadow-md' : 'text-gray-400 hover:text-white'}`}
-                    >
-                        Buy
-                    </button>
-                    <button 
-                        onClick={() => setOrderSide('SELL')}
-                        className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${orderSide === 'SELL' ? 'bg-rose-500 text-white shadow-md' : 'text-gray-400 hover:text-white'}`}
-                    >
-                        Sell
-                    </button>
-                </div>
-                
-                <div className="flex justify-between mb-8 border border-[#1C212D] rounded-xl overflow-hidden bg-[#0B0E14]/50">
-                    {['Market', 'Limit', 'SL', 'SL-M'].map((t) => (
+                {activeTradeTab === 'Trade' && (
+                  <>
+                    <div className="flex gap-2 mb-6 bg-[#1C212D] p-1 rounded-xl border border-gray-800">
                         <button 
-                            key={t}
-                            onClick={() => setOrderType(t.toUpperCase())}
-                            className={`flex-1 text-[11px] font-medium py-2.5 border-r border-[#1C212D] last:border-0 transition-colors ${orderType === t.toUpperCase() ? 'bg-gray-800/80 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                            onClick={() => setOrderSide('BUY')}
+                            className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${orderSide === 'BUY' ? 'bg-[#00E6A8] text-[#0B0E14] shadow-md' : 'text-gray-400 hover:text-white'}`}
                         >
-                            {t}
+                            Buy
                         </button>
-                    ))}
-                </div>
-                
-                <div className="mb-8">
-                    <label className="block text-[11px] text-gray-500 font-medium mb-2.5">Quantity (Shares)</label>
-                    <div className="flex items-center bg-[#0B0E14] rounded-xl border border-[#1C212D] focus-within:border-gray-600 transition-colors p-1.5">
-                        <input 
-                            type="number" 
-                            value={quantity}
-                            onChange={(e) => setQuantity(Number(e.target.value))}
-                            className="bg-transparent w-full text-white px-3 py-2 outline-none text-lg font-medium"
-                        />
-                        <div className="flex gap-1.5 shrink-0">
-                            <button className="w-10 h-10 flex items-center justify-center bg-[#1C212D] hover:bg-gray-800 rounded-lg text-gray-400 transition-colors" onClick={() => setQuantity(Math.max(1, quantity-1))}><Minus className="w-4 h-4" /></button>
-                            <button className="w-10 h-10 flex items-center justify-center bg-[#1C212D] hover:bg-gray-800 rounded-lg text-gray-400 transition-colors" onClick={() => setQuantity(quantity+1)}><Plus className="w-4 h-4" /></button>
+                        <button 
+                            onClick={() => setOrderSide('SELL')}
+                            className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${orderSide === 'SELL' ? 'bg-rose-500 text-white shadow-md' : 'text-gray-400 hover:text-white'}`}
+                        >
+                            Sell
+                        </button>
+                    </div>
+                    
+                    <div className="flex justify-between mb-8 border border-[#1C212D] rounded-xl overflow-hidden bg-[#0B0E14]/50">
+                        {['Market', 'Limit', 'SL', 'SL-M'].map((t) => (
+                            <button 
+                                key={t}
+                                onClick={() => setOrderType(t.toUpperCase())}
+                                className={`flex-1 text-[11px] font-medium py-2.5 border-r border-[#1C212D] last:border-0 transition-colors ${orderType === t.toUpperCase() ? 'bg-gray-800/80 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                            >
+                                {t}
+                            </button>
+                        ))}
+                    </div>
+                    
+                    <div className="flex flex-col gap-5 mb-auto">
+                        <div>
+                            <label className="block text-[11px] text-gray-500 font-medium mb-2.5">Quantity (Shares)</label>
+                            <div className="flex items-center bg-[#0B0E14] rounded-xl border border-[#1C212D] focus-within:border-gray-600 transition-colors p-1.5">
+                                <input 
+                                    type="number" 
+                                    value={quantity}
+                                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                                    className="bg-transparent w-full text-white px-3 py-2 outline-none text-lg font-medium"
+                                />
+                                <div className="flex gap-1.5 shrink-0">
+                                    <button className="w-10 h-10 flex items-center justify-center bg-[#1C212D] hover:bg-gray-800 rounded-lg text-gray-400 transition-colors" onClick={() => setQuantity(Math.max(1, quantity-1))}><Minus className="w-4 h-4" /></button>
+                                    <button className="w-10 h-10 flex items-center justify-center bg-[#1C212D] hover:bg-gray-800 rounded-lg text-gray-400 transition-colors" onClick={() => setQuantity(quantity+1)}><Plus className="w-4 h-4" /></button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="flex justify-between items-center py-4 border-b border-[#1C212D]">
+                            <span className="text-[11px] text-gray-500 font-medium">Approx. Order Value</span>
+                            <span className="text-sm text-white font-bold tracking-wide">₹{totalValue.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 cursor-pointer group">
+                            <input type="checkbox" id="bracket" className="rounded border-gray-700 bg-transparent text-[#00E6A8] focus:ring-[#00E6A8] focus:ring-offset-0" />
+                            <label htmlFor="bracket" className="text-[11px] text-gray-400 group-hover:text-gray-300 font-medium transition-colors">Bracket Order (SL + Target)</label>
+                            <Info className="w-3.5 h-3.5 text-gray-500 ml-0.5" />
                         </div>
                     </div>
-                </div>
-                
-                <div className="flex justify-between items-center mb-6">
-                    <span className="text-[11px] text-gray-500 font-medium">Approx. Order Value</span>
-                    <span className="text-sm text-white font-bold tracking-wide">₹{totalValue.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
-                </div>
-                
-                <div className="flex items-center gap-2 mb-8 cursor-pointer group">
-                    <div className="w-4 h-4 rounded-sm border border-gray-600 flex items-center justify-center group-hover:border-gray-400 transition-colors"></div>
-                    <span className="text-[11px] text-gray-400 group-hover:text-gray-300 font-medium transition-colors">Bracket Order (SL + Target)</span>
-                    <Info className="w-3.5 h-3.5 text-gray-500 ml-0.5" />
-                </div>
-                
-                <button 
-                    onClick={handleOrder}
-                    disabled={submitting}
-                    className={`w-full py-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg mt-auto ${orderSide === 'BUY' ? 'bg-[#00E6A8] hover:bg-[#00c58f] text-[#0B0E14] shadow-[#00E6A8]/20' : 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/20'} ${submitting ? 'opacity-50' : ''}`}
-                >
-                    {submitting ? 'Processing...' : (orderSide === 'BUY' ? 'Place Buy Order' : 'Place Sell Order')}
-                    {!submitting && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>}
-                </button>
+                    
+                    <button 
+                        onClick={handleOrder}
+                        disabled={submitting}
+                        className={`w-full py-4 mt-6 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg ${orderSide === 'BUY' ? 'bg-[#00E6A8] hover:bg-[#00c58f] text-[#0B0E14] shadow-[#00E6A8]/20' : 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/20'} ${submitting ? 'opacity-50' : ''}`}
+                    >
+                        {submitting ? 'Processing...' : (orderSide === 'BUY' ? 'Place Buy Order' : 'Place Sell Order')}
+                        {!submitting && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>}
+                    </button>
+                  </>
+                )}
+
+                {activeTradeTab === 'Depth' && (
+                  <div className="flex-1 flex flex-col mt-2">
+                      <div className="grid grid-cols-2 gap-4 mb-3 border-b border-[#1C212D] pb-2">
+                          <div>
+                              <div className="text-[10px] text-gray-500 uppercase font-medium flex justify-between">
+                                  <span>Bid (Buy)</span><span>Qty</span>
+                              </div>
+                          </div>
+                          <div>
+                              <div className="text-[10px] text-gray-500 uppercase font-medium flex justify-between">
+                                  <span>Ask (Sell)</span><span>Qty</span>
+                              </div>
+                          </div>
+                      </div>
+                      <div className="flex-1 overflow-y-auto custom-scrollbar flex">
+                          <div className="w-1/2 pr-2 border-r border-[#1C212D]">
+                              {[...Array(8)].map((_, i) => (
+                                  <div key={i} className="flex justify-between items-center mb-2.5">
+                                      <span className="text-xs text-[#00E6A8] font-bold">{(activePrice - (i*0.45 + 0.1)).toFixed(2)}</span>
+                                      <span className="text-xs text-gray-300 font-medium">{Math.floor(Math.random() * 500) + 50}</span>
+                                  </div>
+                              ))}
+                          </div>
+                          <div className="w-1/2 pl-2">
+                              {[...Array(8)].map((_, i) => (
+                                  <div key={i} className="flex justify-between items-center mb-2.5">
+                                      <span className="text-xs text-rose-500 font-bold">{(activePrice + (i*0.35 + 0.1)).toFixed(2)}</span>
+                                      <span className="text-xs text-gray-300 font-medium">{Math.floor(Math.random() * 500) + 50}</span>
+                                  </div>
+                              ))}
+                          </div>
+                      </div>
+                      <div className="mt-auto pt-4 border-t border-[#1C212D] flex justify-between">
+                          <div className="flex flex-col">
+                              <span className="text-[10px] text-gray-500">Total Buy Qty</span>
+                              <span className="text-sm font-bold text-[#00E6A8]">12,450</span>
+                          </div>
+                          <div className="flex flex-col items-end">
+                              <span className="text-[10px] text-gray-500">Total Sell Qty</span>
+                              <span className="text-sm font-bold text-rose-500">18,320</span>
+                          </div>
+                      </div>
+                  </div>
+                )}
+
+                {activeTradeTab === 'Info' && (
+                  <div className="flex-1 flex flex-col mt-2">
+                      <h3 className="text-base font-bold text-white mb-1 truncate">{fundamentals?.company_name || selectedStock || 'Company Name'}</h3>
+                      <p className="text-xs text-gray-400 mb-6 truncate">{fundamentals?.sector || 'Financial Services'}</p>
+                      
+                      <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar">
+                          <div className="bg-[#0B0E14] p-3 rounded-xl border border-[#1C212D]">
+                              <p className="text-[11px] text-gray-500 uppercase tracking-widest mb-1 font-medium">Market Scale</p>
+                              <p className="text-sm text-gray-200 font-semibold">{fundamentals?.scale || 'Large Cap'}</p>
+                          </div>
+                          <div className="bg-[#0B0E14] p-3 rounded-xl border border-[#1C212D]">
+                              <p className="text-[11px] text-gray-500 uppercase tracking-widest mb-1 font-medium">Delivery %</p>
+                              <p className="text-sm text-[#00E6A8] font-bold">{fundamentals?.delivery_pct || '54.2%'}</p>
+                          </div>
+                          <div className="bg-[#0B0E14] p-3 rounded-xl border border-[#1C212D]">
+                              <p className="text-[11px] text-gray-500 uppercase tracking-widest mb-1 font-medium">Trend Strength</p>
+                              <p className="text-sm text-white font-semibold">MACD Signal: Positive</p>
+                              <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">Momentum bias is showing strong continuation patterns.</p>
+                          </div>
+                      </div>
+                  </div>
+                )}
             </div>
         </div>
 

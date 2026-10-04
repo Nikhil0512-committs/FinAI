@@ -38,6 +38,7 @@ export const TerminalPage = () => {
   const [quantity, setQuantity] = useState(25);
   const [submitting, setSubmitting] = useState(false);
   const [activeTradeTab, setActiveTradeTab] = useState('Trade');
+  const [bottomTab, setBottomTab] = useState('Positions');
   
   const activePrice = currentQuote?.price || 2816.80;
   const changePct = currentQuote?.change_pct || -2.98;
@@ -172,7 +173,7 @@ export const TerminalPage = () => {
                 </div>
                 
                 {/* Metrics Below Chart */}
-                <div className="grid grid-cols-9 gap-4 p-5 border-t border-[#1C212D] bg-[#0B0E14]/30">
+                <div className="flex flex-wrap items-center justify-between gap-4 p-5 border-t border-[#1C212D] bg-[#0B0E14]/30">
                     {[
                         {l: 'Open', v: `₹${(activePrice - 10).toFixed(2)}`},
                         {l: 'High', v: `₹${(activePrice + 20).toFixed(2)}`, c: 'text-[#00E6A8]'},
@@ -184,7 +185,7 @@ export const TerminalPage = () => {
                         {l: '52W High', v: `₹${(activePrice * 1.3).toFixed(2)}`},
                         {l: '52W Low', v: `₹${(activePrice * 0.7).toFixed(2)}`},
                     ].map(m => (
-                        <div key={m.l} className="flex flex-col">
+                        <div key={m.l} className="flex flex-col min-w-[60px]">
                             <span className="text-[11px] text-gray-500 mb-1.5 font-medium">{m.l}</span>
                             <span className={`text-[13px] font-bold tracking-wide ${m.c || 'text-white'}`}>{m.v}</span>
                         </div>
@@ -273,67 +274,105 @@ export const TerminalPage = () => {
         </div>
 
         {/* BOTTOM WIDGETS ROW */}
-        <div className="grid grid-cols-[1fr_1fr_1fr] gap-5 shrink-0">
+        <div className="flex gap-5 shrink-0">
             
-            {/* Your Position */}
-            <div className="bg-[#131722] rounded-2xl border border-[#1C212D] p-5 flex flex-col justify-between shadow-sm">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-[13px] font-semibold text-white flex items-center gap-2.5">
-                        <Activity className="w-4 h-4 text-gray-400" />
-                        Your Positions ({activePositions.length})
-                    </h3>
-                    <Link to="/orders" className="text-[11px] text-gray-400 hover:text-white font-medium flex items-center gap-1">View All <ChevronDown className="w-3 h-3 -rotate-90" /></Link>
+            {/* Left Bottom Panel (Positions & Recent Trades) */}
+            <div className="flex-1 bg-[#131722] rounded-2xl border border-[#1C212D] p-5 flex flex-col shadow-sm">
+                <div className="flex justify-between items-center mb-4 border-b border-[#1C212D]">
+                    <div className="flex items-center gap-6">
+                        <button 
+                            onClick={() => setBottomTab('Positions')} 
+                            className={`text-[13px] font-semibold flex items-center gap-2.5 pb-3 -mb-px border-b-2 transition-colors ${bottomTab === 'Positions' ? 'text-white border-[#00E6A8]' : 'text-gray-500 border-transparent hover:text-gray-300'}`}
+                        >
+                            <Activity className="w-4 h-4" />
+                            Your Positions ({activePositions.length})
+                        </button>
+                        <button 
+                            onClick={() => setBottomTab('Recent Trades')} 
+                            className={`text-[13px] font-semibold flex items-center gap-2.5 pb-3 -mb-px border-b-2 transition-colors ${bottomTab === 'Recent Trades' ? 'text-white border-[#00E6A8]' : 'text-gray-500 border-transparent hover:text-gray-300'}`}
+                        >
+                            <Clock className="w-4 h-4" />
+                            Recent Trades
+                        </button>
+                    </div>
+                    <Link to="/orders" className="text-[11px] text-gray-400 hover:text-white font-medium flex items-center gap-1 pb-3">View All <ChevronDown className="w-3 h-3 -rotate-90" /></Link>
                 </div>
                 
-                <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 max-h-36">
-                    {activePositions.length === 0 ? (
-                        <div className="h-full flex items-center justify-center text-gray-500 text-xs py-8">No active positions.</div>
-                    ) : (
-                        activePositions.map(t => {
-                            const entryPx = parseFloat(t.price || 0);
-                            const qty = parseFloat(t.quantity || 0);
-                            const pnl = t.side === 'BUY' ? (activePrice - entryPx) * qty : (entryPx - activePrice) * qty;
-                            const pnlPct = (pnl / (entryPx * qty)) * 100;
-                            const isPnlPos = pnl >= 0;
-                            return (
-                                <div key={t.trade_code} className="grid grid-cols-3 gap-y-3 gap-x-2 pb-3 mb-3 border-b border-[#1C212D] last:border-0">
-                                    <div className="flex flex-col">
-                                        <span className="text-[10px] text-gray-500 mb-0.5 font-medium">Symbol</span>
-                                        <span className="text-xs text-white font-bold">{t.symbol}</span>
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <span className="text-[10px] text-gray-500 mb-0.5 font-medium">Qty / Side</span>
-                                        <span className={`text-xs font-bold ${t.side==='BUY'?'text-[#00E6A8]':'text-rose-500'}`}>{qty} {t.side}</span>
-                                    </div>
-                                    <div className="flex flex-col items-end">
-                                        <span className="text-[10px] text-gray-500 mb-0.5 font-medium">P&L</span>
-                                        <div className="flex flex-col items-end">
-                                            <span className={`text-xs font-bold ${isPnlPos ? 'text-[#00E6A8]' : 'text-rose-500'}`}>
-                                                {isPnlPos ? '+' : ''}₹{pnl.toFixed(2)}
-                                            </span>
-                                            <span className={`text-[9px] ${isPnlPos ? 'text-[#00E6A8]' : 'text-rose-500'}`}>{isPnlPos ? '+' : ''}{pnlPct.toFixed(2)}%</span>
+                <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 max-h-40">
+                    {bottomTab === 'Positions' ? (
+                        activePositions.length === 0 ? (
+                            <div className="h-full flex items-center justify-center text-gray-500 text-xs py-8">No active positions.</div>
+                        ) : (
+                            activePositions.map(t => {
+                                const entryPx = parseFloat(t.price || 0);
+                                const qty = parseFloat(t.quantity || 0);
+                                const pnl = t.side === 'BUY' ? (activePrice - entryPx) * qty : (entryPx - activePrice) * qty;
+                                const pnlPct = (pnl / (entryPx * qty)) * 100;
+                                const isPnlPos = pnl >= 0;
+                                return (
+                                    <div key={t.trade_code} className="grid grid-cols-6 gap-y-3 gap-x-2 pb-3 mb-3 border-b border-[#1C212D] last:border-0 items-center">
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] text-gray-500 mb-0.5 font-medium">Symbol</span>
+                                            <span className="text-xs text-white font-bold">{t.symbol}</span>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] text-gray-500 mb-0.5 font-medium">Qty / Side</span>
+                                            <span className={`text-xs font-bold ${t.side==='BUY'?'text-[#00E6A8]':'text-rose-500'}`}>{qty} {t.side}</span>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] text-gray-500 mb-0.5 font-medium">Avg Price</span>
+                                            <span className="text-xs text-gray-300">₹{entryPx.toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] text-gray-500 mb-0.5 font-medium">LTP</span>
+                                            <span className="text-xs text-white font-bold">₹{activePrice.toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] text-gray-500 mb-0.5 font-medium">P&L</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className={`text-xs font-bold ${isPnlPos ? 'text-[#00E6A8]' : 'text-rose-500'}`}>
+                                                    {isPnlPos ? '+' : ''}₹{pnl.toFixed(2)}
+                                                </span>
+                                                <span className={`text-[9px] ${isPnlPos ? 'text-[#00E6A8]' : 'text-rose-500'}`}>({isPnlPos ? '+' : ''}{pnlPct.toFixed(2)}%)</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-end">
+                                            <button onClick={() => closeTrade(t.trade_code, activePrice)} className="text-[10px] px-3 py-1.5 bg-[#1C212D] rounded border border-gray-700 hover:bg-gray-800 text-gray-300 transition-colors">Square Off</button>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col">
-                                        <span className="text-[10px] text-gray-500 mb-0.5 font-medium">Avg Price</span>
-                                        <span className="text-xs text-gray-300">₹{entryPx.toFixed(2)}</span>
+                                );
+                            })
+                        )
+                    ) : (
+                        trades?.length === 0 ? (
+                             <div className="h-full flex items-center justify-center text-gray-500 text-xs py-8">No recent trades.</div>
+                        ) : (
+                            trades?.map((t, i) => {
+                                const d = new Date(t.timestamp || Date.now());
+                                const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                const isBuy = t.side === 'BUY';
+                                return (
+                                <div key={i} className="flex items-center justify-between text-xs group pb-3 mb-3 border-b border-[#1C212D] last:border-0">
+                                    <div className="flex items-center gap-3.5 w-[25%] shrink-0">
+                                        <span className={`w-2 h-2 rounded-full shadow-sm ${isBuy ? 'bg-[#00E6A8]' : 'bg-rose-500'}`}></span>
+                                        <span className="text-gray-500 font-medium">{timeStr}</span>
                                     </div>
-                                    <div className="flex flex-col">
-                                        <span className="text-[10px] text-gray-500 mb-0.5 font-medium">LTP</span>
-                                        <span className="text-xs text-white font-bold">₹{activePrice.toFixed(2)}</span>
-                                    </div>
-                                    <div className="flex justify-end items-center">
-                                        <button onClick={() => closeTrade(t.trade_code, activePrice)} className="text-[10px] px-2 py-1.5 bg-[#1C212D] rounded border border-gray-700 hover:bg-gray-800 text-gray-300 transition-colors">Square Off</button>
+                                    <span className="text-white w-[25%] text-left font-semibold truncate">{t.symbol}</span>
+                                    <div className="w-[50%] flex justify-between text-right pl-2">
+                                        <span className="text-gray-400 font-medium truncate">{t.status}</span>
+                                        <span className="text-gray-400 font-medium">₹{t.price}</span>
+                                        <span className={`font-semibold ml-2 shrink-0 ${isBuy ? 'text-[#00E6A8]' : 'text-rose-500'}`}>{t.quantity} Shares</span>
                                     </div>
                                 </div>
-                            );
-                        })
+                                );
+                            })
+                        )
                     )}
                 </div>
             </div>
 
-            {/* Today's Performance */}
-            <div className="bg-[#131722] rounded-2xl border border-[#1C212D] p-5 flex flex-col justify-between shadow-sm">
+            {/* Today's Performance (Right Bottom Panel, matched width with Trade Panel) */}
+            <div className="w-[340px] bg-[#131722] rounded-2xl border border-[#1C212D] p-5 flex flex-col justify-between shadow-sm shrink-0">
                  <div className="flex justify-between items-center mb-4">
                     <h3 className="text-[13px] font-semibold text-white flex items-center gap-2.5">
                         <BarChart3 className="w-4 h-4 text-gray-400" />
@@ -367,7 +406,7 @@ export const TerminalPage = () => {
                             <span className="text-white font-bold mb-0.5">₹{totalVal.toLocaleString('en-IN', {maximumFractionDigits: 2})}</span>
                             <span className="text-gray-500 font-medium">Portfolio Value</span>
                         </div>
-                        <div className="flex flex-col">
+                        <div className="flex flex-col text-center">
                             <span className="text-white font-bold mb-0.5">₹{cash.toLocaleString('en-IN', {maximumFractionDigits: 2})}</span>
                             <span className="text-gray-500 font-medium">Cash</span>
                         </div>
@@ -376,41 +415,6 @@ export const TerminalPage = () => {
                             <span className="text-gray-500 font-medium">Used Margins</span>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            {/* Recent Activity */}
-            <div className="bg-[#131722] rounded-2xl border border-[#1C212D] p-5 flex flex-col shadow-sm">
-                <div className="flex justify-between items-center mb-5">
-                    <h3 className="text-[13px] font-semibold text-white flex items-center gap-2.5">
-                        <Clock className="w-4 h-4 text-gray-400" />
-                        Recent Trades
-                    </h3>
-                    <Link to="/orders" className="text-[11px] text-gray-400 hover:text-white font-medium flex items-center gap-1">View All <ChevronDown className="w-3 h-3 -rotate-90" /></Link>
-                </div>
-                <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar max-h-36">
-                    {trades?.length === 0 ? (
-                         <div className="h-full flex items-center justify-center text-gray-500 text-xs py-8">No recent trades.</div>
-                    ) : (
-                        trades?.slice(0, 8).map((t, i) => {
-                            const d = new Date(t.timestamp || Date.now());
-                            const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                            const isBuy = t.side === 'BUY';
-                            return (
-                            <div key={i} className="flex items-center justify-between text-xs group">
-                                <div className="flex items-center gap-3.5 w-[25%] shrink-0">
-                                    <span className={`w-2 h-2 rounded-full shadow-sm ${isBuy ? 'bg-[#00E6A8]' : 'bg-rose-500'}`}></span>
-                                    <span className="text-gray-500 font-medium">{timeStr}</span>
-                                </div>
-                                <span className="text-white w-[35%] text-left font-semibold truncate">{t.symbol}</span>
-                                <div className="w-[40%] flex justify-between text-right pl-2">
-                                    <span className="text-gray-400 font-medium truncate">{t.status}</span>
-                                    <span className={`font-semibold ml-2 shrink-0 ${isBuy ? 'text-[#00E6A8]' : 'text-rose-500'}`}>{t.quantity}</span>
-                                </div>
-                            </div>
-                            );
-                        })
-                    )}
                 </div>
             </div>
 

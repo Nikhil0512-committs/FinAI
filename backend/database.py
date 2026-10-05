@@ -653,6 +653,9 @@ class FinAIDatabase:
         from yfinance_engine import yfinance_engine
         
         sym_upper = symbol.upper().strip()
+        
+        real_price = None
+        real_chg = 0.0
 
         if not skip_yfinance:
             try:
@@ -660,15 +663,34 @@ class FinAIDatabase:
                 if live_quotes and len(live_quotes) > 0:
                     q = live_quotes[0]
                     if q and q.get('price') and float(q['price']) > 0:
-                        return {
-                            'symbol': sym_upper,
-                            'price': round(float(q['price']), 2),
-                            'change_pct': round(float(q.get('change_pct', 0.0)), 2),
-                            'source': 'yfinance',
-                            'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                        }
+                        real_price = float(q['price'])
+                        real_chg = float(q.get('change_pct', 0.0))
             except Exception:
                 pass
+
+        # Micro-pip drift: deterministic per 30-second window, within tiny +/-0.03%
+        time_bucket = int(time.time() // 30)
+        sym_seed = abs(hash(sym_upper)) % 100000
+        seed_val = int((time_bucket + sym_seed) % (2**31 - 1))
+        rng = np.random.RandomState(seed_val)
+        micro_drift = float(rng.normal(0.0, 0.0003))
+
+        if real_price is not None:
+            # We have a real price, apply micro drift to simulate live ticking if market is open
+            if self.is_market_open():
+                live_price = round(real_price * (1.0 + micro_drift), 2)
+                change_pct = round(real_chg + (micro_drift * 5.0), 2)
+            else:
+                live_price = round(real_price, 2)
+                change_pct = round(real_chg, 2)
+                
+            return {
+                'symbol': sym_upper,
+                'price': live_price,
+                'change_pct': change_pct,
+                'source': 'yfinance',
+                'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
 
         data = self.CURATED_STOCK_MARKET_DATA.get(sym_upper)
         if data:
@@ -679,13 +701,6 @@ class FinAIDatabase:
             base_px = float((h % 2200) + 150)
             day_pct = round(((h % 200) - 95) / 50.0, 2)
 
-        # Micro-pip drift: deterministic per 30-second window, within tiny +/-0.03%
-        time_bucket = int(time.time() // 30)
-        sym_seed = abs(hash(sym_upper)) % 100000
-        seed_val = int((time_bucket + sym_seed) % (2**31 - 1))
-        rng = np.random.RandomState(seed_val)
-        micro_drift = float(rng.normal(0.0, 0.0003))
-        
         live_price = round(base_px * (1.0 + micro_drift), 2)
         change_pct = round(day_pct + (micro_drift * 5.0), 2)
 
@@ -725,18 +740,20 @@ class FinAIDatabase:
         for quote in fyers_engine.get_live_quotes(missing):
             quote_map[quote['symbol']] = quote
             
-        # 2. Fetch all missing symbols using high-speed local fallback to save API rate limits
+        # 2. Fetch missing symbols using yfinance batch to get real prices
         missing_from_apis = [s for s in symbols if s not in quote_map]
-        for s in missing_from_apis:
-            quote = self.get_local_latest_quote(s, skip_yfinance=True)
-            if quote and quote.get('price'):
-                quote_map[s] = quote
+        if missing_from_apis:
+            yf_quotes = yfinance_engine.get_live_quotes(missing_from_apis)
+            for q in yf_quotes:
+                quote_map[q['symbol']] = q
 
+        # 3. Fallback to synthetic local quotes only if everything else fails
         result = []
         for stock in stocks:
             symbol = stock['symbol']
             quote = quote_map.get(symbol)
             if not quote or quote.get('price') is None:
+                # use get_local_latest_quote which will fall back to synthetic
                 quote = self.get_local_latest_quote(symbol, skip_yfinance=True)
             if quote and quote.get('change_pct') is None:
                 quote['change_pct'] = 0.0

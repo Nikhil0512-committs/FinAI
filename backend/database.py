@@ -668,29 +668,22 @@ class FinAIDatabase:
             except Exception:
                 pass
 
+        if real_price is not None:
+            # We have a real price, return it exactly as it is without micro drift
+            return {
+                'symbol': sym_upper,
+                'price': round(real_price, 2),
+                'change_pct': round(real_chg, 2),
+                'source': 'yfinance',
+                'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+
         # Micro-pip drift: deterministic per 30-second window, within tiny +/-0.03%
         time_bucket = int(time.time() // 30)
         sym_seed = abs(hash(sym_upper)) % 100000
         seed_val = int((time_bucket + sym_seed) % (2**31 - 1))
         rng = np.random.RandomState(seed_val)
         micro_drift = float(rng.normal(0.0, 0.0003))
-
-        if real_price is not None:
-            # We have a real price, apply micro drift to simulate live ticking if market is open
-            if self.is_market_open():
-                live_price = round(real_price * (1.0 + micro_drift), 2)
-                change_pct = round(real_chg + (micro_drift * 5.0), 2)
-            else:
-                live_price = round(real_price, 2)
-                change_pct = round(real_chg, 2)
-                
-            return {
-                'symbol': sym_upper,
-                'price': live_price,
-                'change_pct': change_pct,
-                'source': 'yfinance',
-                'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            }
 
         data = self.CURATED_STOCK_MARKET_DATA.get(sym_upper)
         if data:

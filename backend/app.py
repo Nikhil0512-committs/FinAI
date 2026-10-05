@@ -491,7 +491,7 @@ def get_market_intelligence(symbol: str):
                 if is_mock:
                     merged[k] = v
                 else:
-                    if v is not None and v != "N/A" and v != "0.00%":
+                    if (k not in merged or merged[k] == "N/A" or merged[k] is None) and v is not None and v != "N/A" and v != "0.00%":
                         merged[k] = v
             data['fundamentals'] = merged
         else:
@@ -523,7 +523,7 @@ def get_fundamentals(symbol: str):
                 if is_mock:
                     merged[k] = v
                 else:
-                    if v is not None and v != "N/A" and v != "0.00%":
+                    if (k not in merged or merged[k] == "N/A" or merged[k] is None) and v is not None and v != "N/A" and v != "0.00%":
                         merged[k] = v
             fund_data = merged
         else:

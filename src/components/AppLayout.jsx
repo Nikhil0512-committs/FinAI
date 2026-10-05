@@ -20,7 +20,7 @@ const SidebarLink = ({ to, icon: Icon, label }) => {
 
 export const AppLayout = ({ children }) => {
   const { user, logout } = useAuth();
-  const { trades } = useTrading();
+  const { trades, marketIndices } = useTrading();
   const navigate = useNavigate();
   
   const [isDarkMode, setIsDarkMode] = useState(true);
@@ -79,15 +79,23 @@ export const AppLayout = ({ children }) => {
                   <div className="flex flex-col">
                      <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider mb-1">NIFTY</span>
                      <div className="flex items-center gap-2">
-                        <span className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>24,847.20</span>
-                        <span className="text-[11px] text-[#00E6A8]">+0.62%</span>
+                        <span className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          {marketIndices?.nifty?.price ? Number(marketIndices.nifty.price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '22,535.00'}
+                        </span>
+                        <span className={`text-[11px] font-mono ${(marketIndices?.nifty?.change_pct ?? 0) >= 0 ? 'text-[#00E6A8]' : 'text-rose-400'}`}>
+                          {(marketIndices?.nifty?.change_pct ?? 0) >= 0 ? '+' : ''}{Number(marketIndices?.nifty?.change_pct ?? 0.50).toFixed(2)}%
+                        </span>
                      </div>
                   </div>
                   <div className="flex flex-col">
                      <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider mb-1">BANKNIFTY</span>
                      <div className="flex items-center gap-2">
-                        <span className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>52,316.05</span>
-                        <span className="text-[11px] text-rose-400">-0.18%</span>
+                        <span className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          {marketIndices?.banknifty?.price ? Number(marketIndices.banknifty.price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '54,675.85'}
+                        </span>
+                        <span className={`text-[11px] font-mono ${(marketIndices?.banknifty?.change_pct ?? 0) >= 0 ? 'text-[#00E6A8]' : 'text-rose-400'}`}>
+                          {(marketIndices?.banknifty?.change_pct ?? 0) >= 0 ? '+' : ''}{Number(marketIndices?.banknifty?.change_pct ?? 0.41).toFixed(2)}%
+                        </span>
                      </div>
                   </div>
                </div>

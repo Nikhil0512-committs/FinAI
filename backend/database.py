@@ -549,94 +549,94 @@ class FinAIDatabase:
         return (9 * 60 + 15) <= time_mins <= (15 * 60 + 30)
 
     CURATED_STOCK_MARKET_DATA = {
-        'RELIANCE':   {'base': 1315.50, 'day_pct': 1.25, 'name': 'Reliance Industries Ltd.', 'sector': 'Energy & Conglomerate'},
-        'TCS':        {'base': 3845.20, 'day_pct': 0.42, 'name': 'Tata Consultancy Services Ltd.', 'sector': 'IT Software & Cloud'},
-        'HDFCBANK':   {'base': 1685.50, 'day_pct': 0.78, 'name': 'HDFC Bank Ltd.', 'sector': 'Banking & Financial Services'},
-        'INFY':       {'base': 1505.30, 'day_pct': -0.18, 'name': 'Infosys Ltd.', 'sector': 'IT Software & Digital'},
-        'ICICIBANK':  {'base': 1120.40, 'day_pct': 0.65, 'name': 'ICICI Bank Ltd.', 'sector': 'Banking & Financial Services'},
-        'ADANIENT':   {'base': 2988.60, 'day_pct': -0.65, 'name': 'Adani Enterprises Ltd.', 'sector': 'Metals & Energy'},
-        'TATAMOTORS': {'base': 965.80,  'day_pct': 1.15, 'name': 'Tata Motors Passenger Vehicles Ltd.', 'sector': 'Automotive & EV'},
-        'SBIN':       {'base': 820.50,  'day_pct': 0.35, 'name': 'State Bank of India', 'sector': 'Public Banking & Financials'},
-        'BHARTIARTL': {'base': 1580.00, 'day_pct': 0.90, 'name': 'Bharti Airtel Ltd.', 'sector': 'Telecommunications'},
-        'ITC':        {'base': 264.10,  'day_pct': -0.25, 'name': 'ITC Ltd.', 'sector': 'FMCG & Diversified'},
-        'LT':         {'base': 3650.00, 'day_pct': 0.55, 'name': 'Larsen & Toubro Ltd.', 'sector': 'Infrastructure & Engineering'},
-        'KOTAKBANK':  {'base': 1780.00, 'day_pct': -0.40, 'name': 'Kotak Mahindra Bank Ltd.', 'sector': 'Banking & Financials'},
-        'HINDUNILVR': {'base': 2480.00, 'day_pct': 0.15, 'name': 'Hindustan Unilever Ltd.', 'sector': 'Consumer Goods (FMCG)'},
-        'AXISBANK':   {'base': 1160.00, 'day_pct': 0.85, 'name': 'Axis Bank Ltd.', 'sector': 'Banking & Financials'},
-        'BAJFINANCE': {'base': 6850.00, 'day_pct': -0.75, 'name': 'Bajaj Finance Ltd.', 'sector': 'Financial Services (NBFC)'},
-        'BAJAJFINSV': {'base': 1740.00, 'day_pct': -0.30, 'name': 'Bajaj Finserv Ltd.', 'sector': 'Financial Services'},
-        'MARUTI':     {'base': 12450.0, 'day_pct': 0.95, 'name': 'Maruti Suzuki India Ltd.', 'sector': 'Automotive'},
-        'ASIANPAINT': {'base': 2780.00, 'day_pct': -0.50, 'name': 'Asian Paints Ltd.', 'sector': 'Paints & Chemicals'},
-        'SUNPHARMA':  {'base': 1680.00, 'day_pct': 0.45, 'name': 'Sun Pharmaceutical Industries', 'sector': 'Pharmaceuticals & Healthcare'},
-        'TITAN':      {'base': 3450.00, 'day_pct': 1.10, 'name': 'Titan Company Ltd.', 'sector': 'Consumer Discretionary & Luxury'},
-        'WIPRO':      {'base': 520.00,  'day_pct': 0.20, 'name': 'Wipro Ltd.', 'sector': 'IT Services & Consulting'},
-        'HCLTECH':    {'base': 1520.00, 'day_pct': 0.30, 'name': 'HCL Technologies Ltd.', 'sector': 'IT Services'},
-        'ULTRACEMCO': {'base': 10800.0, 'day_pct': 0.60, 'name': 'UltraTech Cement Ltd.', 'sector': 'Cement & Materials'},
-        'NTPC':       {'base': 390.00,  'day_pct': 0.70, 'name': 'NTPC Ltd.', 'sector': 'Power & Utilities'},
-        'POWERGRID':  {'base': 310.00,  'day_pct': 0.40, 'name': 'Power Grid Corporation of India', 'sector': 'Power Transmission'},
-        'ONGC':       {'base': 295.00,  'day_pct': -0.80, 'name': 'Oil and Natural Gas Corporation', 'sector': 'Oil & Gas Exploration'},
-        'TATASTEEL':  {'base': 145.00,  'day_pct': 1.05, 'name': 'Tata Steel Ltd.', 'sector': 'Metals & Mining'},
-        'COALINDIA':  {'base': 490.00,  'day_pct': 0.15, 'name': 'Coal India Ltd.', 'sector': 'Mining & Energy'},
-        'JSWSTEEL':   {'base': 920.00,  'day_pct': 0.50, 'name': 'JSW Steel Ltd.', 'sector': 'Metals & Mining'},
-        'M&M':        {'base': 2850.00, 'day_pct': 1.30, 'name': 'Mahindra & Mahindra Ltd.', 'sector': 'Automotive & Farm Equipment'},
-        'ADANIPORTS': {'base': 1380.00, 'day_pct': 0.45, 'name': 'Adani Ports and SEZ Ltd.', 'sector': 'Ports & Logistics'},
-        'GRASIM':     {'base': 2520.00, 'day_pct': -0.35, 'name': 'Grasim Industries Ltd.', 'sector': 'Textiles & Chemicals'},
-        'HINDALCO':   {'base': 640.00,  'day_pct': 0.80, 'name': 'Hindalco Industries Ltd.', 'sector': 'Metals & Aluminium'},
-        'CIPLA':      {'base': 1480.00, 'day_pct': 0.25, 'name': 'Cipla Ltd.', 'sector': 'Pharmaceuticals'},
-        'DRREDDY':    {'base': 6450.00, 'day_pct': -0.45, 'name': "Dr. Reddy's Laboratories Ltd.", 'sector': 'Pharmaceuticals'},
-        'APOLLOHOSP': {'base': 6750.00, 'day_pct': 0.70, 'name': 'Apollo Hospitals Enterprise Ltd.', 'sector': 'Healthcare & Hospitals'},
-        'DIVISLAB':   {'base': 4950.00, 'day_pct': -0.10, 'name': "Divi's Laboratories Ltd.", 'sector': 'Pharma Active Ingredients'},
-        'EICHERMOT':  {'base': 4650.00, 'day_pct': 1.20, 'name': 'Eicher Motors Ltd. (Royal Enfield)', 'sector': 'Automotive & Motorcycles'},
-        'HEROMOTOCO': {'base': 5100.00, 'day_pct': 0.85, 'name': 'Hero MotoCorp Ltd.', 'sector': 'Two-Wheelers & Automotive'},
-        'BAJAJ-AUTO': {'base': 9800.00, 'day_pct': 0.65, 'name': 'Bajaj Auto Ltd.', 'sector': 'Two-Wheelers & Auto'},
-        'NESTLEIND':  {'base': 2350.00, 'day_pct': -0.15, 'name': 'Nestle India Ltd.', 'sector': 'Food & Consumer Goods'},
-        'BRITANNIA':  {'base': 5450.00, 'day_pct': 0.30, 'name': 'Britannia Industries Ltd.', 'sector': 'Food & Bakery Products'},
-        'TECHM':      {'base': 1480.00, 'day_pct': -0.55, 'name': 'Tech Mahindra Ltd.', 'sector': 'IT Software & Telecom'},
-        'INDUSINDBK': {'base': 1350.00, 'day_pct': 0.40, 'name': 'IndusInd Bank Ltd.', 'sector': 'Banking & Financials'},
-        'SBILIFE':    {'base': 1650.00, 'day_pct': 0.10, 'name': 'SBI Life Insurance Company Ltd.', 'sector': 'Life Insurance'},
-        'HDFCLIFE':   {'base': 690.00,  'day_pct': 0.50, 'name': 'HDFC Life Insurance Company Ltd.', 'sector': 'Life Insurance'},
-        'BPCL':       {'base': 330.00,  'day_pct': -0.90, 'name': 'Bharat Petroleum Corporation Ltd.', 'sector': 'Oil Refining & Marketing'},
-        'TATACONSUM': {'base': 1080.00, 'day_pct': 0.35, 'name': 'Tata Consumer Products Ltd.', 'sector': 'FMCG & Beverages'},
-        'ZOMATO':     {'base': 245.00,  'day_pct': 2.10, 'name': 'Zomato Ltd.', 'sector': 'Online Delivery & Tech'},
-        'JIOFIN':     {'base': 320.00,  'day_pct': 0.60, 'name': 'Jio Financial Services Ltd.', 'sector': 'Fintech & Financial Services'},
-        'PAYTM':      {'base': 680.00,  'day_pct': 1.45, 'name': 'One97 Communications (Paytm)', 'sector': 'Fintech & Digital Payments'},
-        'VEDL':       {'base': 460.00,  'day_pct': -0.30, 'name': 'Vedanta Ltd.', 'sector': 'Metals & Natural Resources'},
-        'PIDILITIND': {'base': 2950.00, 'day_pct': 0.25, 'name': 'Pidilite Industries Ltd. (Fevicol)', 'sector': 'Adhesives & Chemicals'},
-        'SIEMENS':    {'base': 7200.00, 'day_pct': 1.10, 'name': 'Siemens India Ltd.', 'sector': 'Capital Goods & Industrial'},
-        'ABB':        {'base': 7600.00, 'day_pct': 0.90, 'name': 'ABB India Ltd.', 'sector': 'Electrification & Robotics'},
-        'BEL':        {'base': 290.00,  'day_pct': 1.65, 'name': 'Bharat Electronics Ltd.', 'sector': 'Defence & Aerospace'},
-        'HAL':        {'base': 4450.00, 'day_pct': 1.40, 'name': 'Hindustan Aeronautics Ltd.', 'sector': 'Defence & Aerospace'},
-        'TRENT':      {'base': 6850.00, 'day_pct': 2.30, 'name': 'Trent Ltd. (Westside / Zudio)', 'sector': 'Retail & Fashion'},
-        'VBL':        {'base': 1450.00, 'day_pct': 0.75, 'name': 'Varun Beverages Ltd. (Pepsi Bottler)', 'sector': 'Beverages & FMCG'},
-        'CHOLAFIN':   {'base': 1480.00, 'day_pct': 0.40, 'name': 'Cholamandalam Investment & Finance', 'sector': 'Financial Services (NBFC)'},
-        'LTIM':       {'base': 5400.00, 'day_pct': -0.20, 'name': 'LTIMindtree Ltd.', 'sector': 'IT Services'},
-        'DMART':      {'base': 4200.00, 'day_pct': 0.30, 'name': 'Avenue Supermarts Ltd.', 'sector': 'Retail'},
-        'HDFCAMC':    {'base': 4100.00, 'day_pct': 0.80, 'name': 'HDFC Asset Management Company', 'sector': 'Financial Services'},
-        'SRF':        {'base': 2350.00, 'day_pct': -0.40, 'name': 'SRF Ltd.', 'sector': 'Chemicals'},
-        'PAGEIND':    {'base': 42000.0, 'day_pct': 0.15, 'name': 'Page Industries Ltd.', 'sector': 'Textiles'},
-        'SHREECEM':   {'base': 24500.0, 'day_pct': -0.50, 'name': 'Shree Cement Ltd.', 'sector': 'Cement'},
-        'AMBUJACEM':  {'base': 610.00,  'day_pct': 0.65, 'name': 'Ambuja Cements Ltd.', 'sector': 'Cement'},
-        'INDIGO':     {'base': 4600.00, 'day_pct': 1.20, 'name': 'InterGlobe Aviation Ltd.', 'sector': 'Aviation'},
-        'TORNTPHARM': {'base': 3100.00, 'day_pct': 0.35, 'name': 'Torrent Pharmaceuticals', 'sector': 'Pharmaceuticals'},
-        'LUPIN':      {'base': 2100.00, 'day_pct': 0.50, 'name': 'Lupin Ltd.', 'sector': 'Pharmaceuticals'},
-        'AUROPHARMA': {'base': 1380.00, 'day_pct': -0.30, 'name': 'Aurobindo Pharma', 'sector': 'Pharmaceuticals'},
-        'ICICIPRULI': {'base': 680.00,  'day_pct': 0.15, 'name': 'ICICI Prudential Life', 'sector': 'Life Insurance'},
-        'ICICIGI':    {'base': 1850.00, 'day_pct': 0.40, 'name': 'ICICI Lombard General', 'sector': 'General Insurance'},
-        'MUTHOOTFIN': {'base': 1780.00, 'day_pct': 0.85, 'name': 'Muthoot Finance Ltd.', 'sector': 'Financial Services'},
-        'BERGEPAINT': {'base': 520.00,  'day_pct': -0.20, 'name': 'Berger Paints India Ltd.', 'sector': 'Paints'},
-        'HAVELLS':    {'base': 1820.00, 'day_pct': 0.60, 'name': 'Havells India Ltd.', 'sector': 'Electricals'},
-        'VOLTAS':     {'base': 1680.00, 'day_pct': 0.45, 'name': 'Voltas Ltd.', 'sector': 'Consumer Durables'},
-        'BOSCHLTD':   {'base': 32000.0, 'day_pct': 0.25, 'name': 'Bosch Ltd.', 'sector': 'Auto Components'},
-        'MRF':        {'base': 128000.0,'day_pct': 0.30, 'name': 'MRF Ltd.', 'sector': 'Tyres'},
-        'MARICO':     {'base': 610.00,  'day_pct': 0.40, 'name': 'Marico Ltd.', 'sector': 'FMCG'},
-        'DABUR':      {'base': 540.00,  'day_pct': -0.15, 'name': 'Dabur India Ltd.', 'sector': 'FMCG'},
-        'GODREJCP':   {'base': 1220.00, 'day_pct': 0.50, 'name': 'Godrej Consumer Products', 'sector': 'FMCG'},
-        'TATACHEM':   {'base': 980.00,  'day_pct': -0.35, 'name': 'Tata Chemicals Ltd.', 'sector': 'Chemicals'},
-        'UPL':        {'base': 540.00,  'day_pct': -0.60, 'name': 'UPL Ltd.', 'sector': 'Agrochemicals'},
-        'PIIND':      {'base': 3800.00, 'day_pct': 0.75, 'name': 'PI Industries Ltd.', 'sector': 'Agrochemicals'},
-        'AUBANK':     {'base': 640.00,  'day_pct': 0.30, 'name': 'AU Small Finance Bank', 'sector': 'Banking'},
-        'FEDERALBNK': {'base': 185.00,  'day_pct': 0.80, 'name': 'Federal Bank Ltd.', 'sector': 'Banking'},
-        'IDFCFIRSTB': {'base': 78.00,   'day_pct': 0.50, 'name': 'IDFC First Bank', 'sector': 'Banking'},
+        'RELIANCE': {'base': 1189.7, 'day_pct': 1.88, 'name': 'Reliance Industries Ltd.', 'sector': 'Energy & Conglomerate'},
+        'TCS': {'base': 2107.0, 'day_pct': 1.54, 'name': 'Tata Consultancy Services Ltd.', 'sector': 'IT Software & Cloud'},
+        'HDFCBANK': {'base': 705.7, 'day_pct': -2.15, 'name': 'HDFC Bank Ltd.', 'sector': 'Banking & Financial Services'},
+        'INFY': {'base': 1020.3, 'day_pct': -1.42, 'name': 'Infosys Ltd.', 'sector': 'IT Software & Digital'},
+        'ICICIBANK': {'base': 1331.4, 'day_pct': 1.59, 'name': 'ICICI Bank Ltd.', 'sector': 'Banking & Financial Services'},
+        'ADANIENT': {'base': 2858.8, 'day_pct': 1.49, 'name': 'Adani Enterprises Ltd.', 'sector': 'Metals & Energy'},
+        'TATAMOTORS': {'base': 287.85, 'day_pct': 3.02, 'name': 'Tata Motors Passenger Vehicles Ltd.', 'sector': 'Automotive & EV'},
+        'SBIN': {'base': 958.4, 'day_pct': 0.45, 'name': 'State Bank of India', 'sector': 'Public Banking & Financials'},
+        'BHARTIARTL': {'base': 1777.2, 'day_pct': 2.07, 'name': 'Bharti Airtel Ltd.', 'sector': 'Telecommunications'},
+        'ITC': {'base': 268.3, 'day_pct': 4.85, 'name': 'ITC Ltd.', 'sector': 'FMCG & Diversified'},
+        'LT': {'base': 3718.0, 'day_pct': 0.67, 'name': 'Larsen & Toubro Ltd.', 'sector': 'Infrastructure & Engineering'},
+        'KOTAKBANK': {'base': 417.35, 'day_pct': -0.24, 'name': 'Kotak Mahindra Bank Ltd.', 'sector': 'Banking & Financials'},
+        'HINDUNILVR': {'base': 1836.0, 'day_pct': 0.0, 'name': 'Hindustan Unilever Ltd.', 'sector': 'Consumer Goods (FMCG)'},
+        'AXISBANK': {'base': 1218.8, 'day_pct': 0.14, 'name': 'Axis Bank Ltd.', 'sector': 'Banking & Financials'},
+        'BAJFINANCE': {'base': 970.75, 'day_pct': 2.37, 'name': 'Bajaj Finance Ltd.', 'sector': 'Financial Services (NBFC)'},
+        'BAJAJFINSV': {'base': 1734.2, 'day_pct': 0.09, 'name': 'Bajaj Finserv Ltd.', 'sector': 'Financial Services'},
+        'MARUTI': {'base': 11493.0, 'day_pct': 0.94, 'name': 'Maruti Suzuki India Ltd.', 'sector': 'Automotive'},
+        'ASIANPAINT': {'base': 2355.1, 'day_pct': -2.16, 'name': 'Asian Paints Ltd.', 'sector': 'Paints & Chemicals'},
+        'SUNPHARMA': {'base': 1780.7, 'day_pct': -1.13, 'name': 'Sun Pharmaceutical Industries', 'sector': 'Pharmaceuticals & Healthcare'},
+        'TITAN': {'base': 4573.0, 'day_pct': 1.27, 'name': 'Titan Company Ltd.', 'sector': 'Consumer Discretionary & Luxury'},
+        'WIPRO': {'base': 162.1, 'day_pct': 1.73, 'name': 'Wipro Ltd.', 'sector': 'IT Services & Consulting'},
+        'HCLTECH': {'base': 1200.5, 'day_pct': -3.43, 'name': 'HCL Technologies Ltd.', 'sector': 'IT Services'},
+        'ULTRACEMCO': {'base': 10908.0, 'day_pct': 1.85, 'name': 'UltraTech Cement Ltd.', 'sector': 'Cement & Materials'},
+        'NTPC': {'base': 321.6, 'day_pct': 2.06, 'name': 'NTPC Ltd.', 'sector': 'Power & Utilities'},
+        'POWERGRID': {'base': 256.6, 'day_pct': 0.81, 'name': 'Power Grid Corporation of India', 'sector': 'Power Transmission'},
+        'ONGC': {'base': 224.83, 'day_pct': 1.11, 'name': 'Oil and Natural Gas Corporation', 'sector': 'Oil & Gas Exploration'},
+        'TATASTEEL': {'base': 178.13, 'day_pct': 0.07, 'name': 'Tata Steel Ltd.', 'sector': 'Metals & Mining'},
+        'COALINDIA': {'base': 426.65, 'day_pct': 1.49, 'name': 'Coal India Ltd.', 'sector': 'Mining & Energy'},
+        'JSWSTEEL': {'base': 1234.2, 'day_pct': 0.1, 'name': 'JSW Steel Ltd.', 'sector': 'Metals & Mining'},
+        'M&M': {'base': 2851.2, 'day_pct': -0.31, 'name': 'Mahindra & Mahindra Ltd.', 'sector': 'Automotive & Farm Equipment'},
+        'ADANIPORTS': {'base': 1761.0, 'day_pct': 1.34, 'name': 'Adani Ports and SEZ Ltd.', 'sector': 'Ports & Logistics'},
+        'GRASIM': {'base': 2981.6, 'day_pct': 0.66, 'name': 'Grasim Industries Ltd.', 'sector': 'Textiles & Chemicals'},
+        'HINDALCO': {'base': 943.05, 'day_pct': 0.13, 'name': 'Hindalco Industries Ltd.', 'sector': 'Metals & Aluminium'},
+        'CIPLA': {'base': 1332.3, 'day_pct': -0.87, 'name': 'Cipla Ltd.', 'sector': 'Pharmaceuticals'},
+        'DRREDDY': {'base': 1202.1, 'day_pct': -0.34, 'name': "Dr. Reddy's Laboratories Ltd.", 'sector': 'Pharmaceuticals'},
+        'APOLLOHOSP': {'base': 7994.0, 'day_pct': -1.72, 'name': 'Apollo Hospitals Enterprise Ltd.', 'sector': 'Healthcare & Hospitals'},
+        'DIVISLAB': {'base': 9217.0, 'day_pct': -0.35, 'name': "Divi's Laboratories Ltd.", 'sector': 'Pharma Active Ingredients'},
+        'EICHERMOT': {'base': 7050.5, 'day_pct': 1.89, 'name': 'Eicher Motors Ltd. (Royal Enfield)', 'sector': 'Automotive & Motorcycles'},
+        'HEROMOTOCO': {'base': 5091.5, 'day_pct': -1.48, 'name': 'Hero MotoCorp Ltd.', 'sector': 'Two-Wheelers & Automotive'},
+        'BAJAJ-AUTO': {'base': 9985.0, 'day_pct': -0.6, 'name': 'Bajaj Auto Ltd.', 'sector': 'Two-Wheelers & Auto'},
+        'NESTLEIND': {'base': 1295.8, 'day_pct': -0.91, 'name': 'Nestle India Ltd.', 'sector': 'Food & Consumer Goods'},
+        'BRITANNIA': {'base': 4748.2, 'day_pct': -0.62, 'name': 'Britannia Industries Ltd.', 'sector': 'Food & Bakery Products'},
+        'TECHM': {'base': 1532.5, 'day_pct': -0.03, 'name': 'Tech Mahindra Ltd.', 'sector': 'IT Software & Telecom'},
+        'INDUSINDBK': {'base': 882.3, 'day_pct': -0.51, 'name': 'IndusInd Bank Ltd.', 'sector': 'Banking & Financials'},
+        'SBILIFE': {'base': 1718.6, 'day_pct': -0.17, 'name': 'SBI Life Insurance Company Ltd.', 'sector': 'Life Insurance'},
+        'HDFCLIFE': {'base': 530.45, 'day_pct': -0.7, 'name': 'HDFC Life Insurance Company Ltd.', 'sector': 'Life Insurance'},
+        'BPCL': {'base': 296.2, 'day_pct': -1.46, 'name': 'Bharat Petroleum Corporation Ltd.', 'sector': 'Oil Refining & Marketing'},
+        'TATACONSUM': {'base': 947.9, 'day_pct': -0.95, 'name': 'Tata Consumer Products Ltd.', 'sector': 'FMCG & Beverages'},
+        'ZOMATO': {'base': 320.35, 'day_pct': 2.05, 'name': 'Zomato Ltd.', 'sector': 'Online Delivery & Tech'},
+        'JIOFIN': {'base': 211.38, 'day_pct': -0.53, 'name': 'Jio Financial Services Ltd.', 'sector': 'Fintech & Financial Services'},
+        'PAYTM': {'base': 1680.9, 'day_pct': 1.5, 'name': 'One97 Communications (Paytm)', 'sector': 'Fintech & Digital Payments'},
+        'VEDL': {'base': 254.2, 'day_pct': 0.85, 'name': 'Vedanta Ltd.', 'sector': 'Metals & Natural Resources'},
+        'PIDILITIND': {'base': 1469.9, 'day_pct': 0.4, 'name': 'Pidilite Industries Ltd. (Fevicol)', 'sector': 'Adhesives & Chemicals'},
+        'SIEMENS': {'base': 3710.2, 'day_pct': -2.47, 'name': 'Siemens India Ltd.', 'sector': 'Capital Goods & Industrial'},
+        'ABB': {'base': 6874.0, 'day_pct': -0.38, 'name': 'ABB India Ltd.', 'sector': 'Electrification & Robotics'},
+        'BEL': {'base': 383.0, 'day_pct': -0.03, 'name': 'Bharat Electronics Ltd.', 'sector': 'Defence & Aerospace'},
+        'HAL': {'base': 4674.9, 'day_pct': 1.61, 'name': 'Hindustan Aeronautics Ltd.', 'sector': 'Defence & Aerospace'},
+        'TRENT': {'base': 2577.9, 'day_pct': -0.08, 'name': 'Trent Ltd. (Westside / Zudio)', 'sector': 'Retail & Fashion'},
+        'VBL': {'base': 437.45, 'day_pct': 2.86, 'name': 'Varun Beverages Ltd. (Pepsi Bottler)', 'sector': 'Beverages & FMCG'},
+        'CHOLAFIN': {'base': 1599.8, 'day_pct': 1.25, 'name': 'Cholamandalam Investment & Finance', 'sector': 'Financial Services (NBFC)'},
+        'LTIM': {'base': 4002.0, 'day_pct': -0.12, 'name': 'LTIMindtree Ltd.', 'sector': 'IT Services'},
+        'DMART': {'base': 3578.1, 'day_pct': -6.16, 'name': 'Avenue Supermarts Ltd.', 'sector': 'Retail'},
+        'HDFCAMC': {'base': 2356.2, 'day_pct': 2.08, 'name': 'HDFC Asset Management Company', 'sector': 'Financial Services'},
+        'SRF': {'base': 2454.5, 'day_pct': -1.28, 'name': 'SRF Ltd.', 'sector': 'Chemicals'},
+        'PAGEIND': {'base': 37335.0, 'day_pct': 1.84, 'name': 'Page Industries Ltd.', 'sector': 'Textiles'},
+        'SHREECEM': {'base': 21850.0, 'day_pct': -0.23, 'name': 'Shree Cement Ltd.', 'sector': 'Cement'},
+        'AMBUJACEM': {'base': 368.35, 'day_pct': 1.68, 'name': 'Ambuja Cements Ltd.', 'sector': 'Cement'},
+        'INDIGO': {'base': 4924.0, 'day_pct': -0.12, 'name': 'InterGlobe Aviation Ltd.', 'sector': 'Aviation'},
+        'TORNTPHARM': {'base': 4756.2, 'day_pct': -0.23, 'name': 'Torrent Pharmaceuticals', 'sector': 'Pharmaceuticals'},
+        'LUPIN': {'base': 2007.9, 'day_pct': -1.15, 'name': 'Lupin Ltd.', 'sector': 'Pharmaceuticals'},
+        'AUROPHARMA': {'base': 1674.1, 'day_pct': -0.16, 'name': 'Aurobindo Pharma', 'sector': 'Pharmaceuticals'},
+        'ICICIPRULI': {'base': 454.95, 'day_pct': 1.54, 'name': 'ICICI Prudential Life', 'sector': 'Life Insurance'},
+        'ICICIGI': {'base': 1595.0, 'day_pct': 2.05, 'name': 'ICICI Lombard General', 'sector': 'General Insurance'},
+        'MUTHOOTFIN': {'base': 2708.8, 'day_pct': 0.43, 'name': 'Muthoot Finance Ltd.', 'sector': 'Financial Services'},
+        'BERGEPAINT': {'base': 457.2, 'day_pct': 1.06, 'name': 'Berger Paints India Ltd.', 'sector': 'Paints'},
+        'HAVELLS': {'base': 1045.3, 'day_pct': 0.51, 'name': 'Havells India Ltd.', 'sector': 'Electricals'},
+        'VOLTAS': {'base': 1054.7, 'day_pct': 0.14, 'name': 'Voltas Ltd.', 'sector': 'Consumer Durables'},
+        'BOSCHLTD': {'base': 44670.0, 'day_pct': -1.78, 'name': 'Bosch Ltd.', 'sector': 'Auto Components'},
+        'MRF': {'base': 123005.0, 'day_pct': -0.57, 'name': 'MRF Ltd.', 'sector': 'Tyres'},
+        'MARICO': {'base': 790.5, 'day_pct': 1.17, 'name': 'Marico Ltd.', 'sector': 'FMCG'},
+        'DABUR': {'base': 375.6, 'day_pct': 0.36, 'name': 'Dabur India Ltd.', 'sector': 'FMCG'},
+        'GODREJCP': {'base': 835.05, 'day_pct': -0.59, 'name': 'Godrej Consumer Products', 'sector': 'FMCG'},
+        'TATACHEM': {'base': 615.25, 'day_pct': 1.23, 'name': 'Tata Chemicals Ltd.', 'sector': 'Chemicals'},
+        'UPL': {'base': 498.7, 'day_pct': -3.5, 'name': 'UPL Ltd.', 'sector': 'Agrochemicals'},
+        'PIIND': {'base': 2207.3, 'day_pct': -1.28, 'name': 'PI Industries Ltd.', 'sector': 'Agrochemicals'},
+        'AUBANK': {'base': 1028.6, 'day_pct': 4.21, 'name': 'AU Small Finance Bank', 'sector': 'Banking'},
+        'FEDERALBNK': {'base': 326.85, 'day_pct': 2.72, 'name': 'Federal Bank Ltd.', 'sector': 'Banking'},
+        'IDFCFIRSTB': {'base': 81.87, 'day_pct': 1.84, 'name': 'IDFC First Bank', 'sector': 'Banking'},
     }
 
     INDIAN_STOCK_BASE_PRICES = {k: v['base'] for k, v in CURATED_STOCK_MARKET_DATA.items()}
@@ -651,12 +651,31 @@ class FinAIDatabase:
         import time
         import numpy as np
         from yfinance_engine import yfinance_engine
+        from dhan_engine import dhan_engine
+        from fyers_engine import fyers_engine
         
         sym_upper = symbol.upper().strip()
         
+        # 1. Try Dhan
+        try:
+            dhan_quotes = dhan_engine.get_live_quotes([sym_upper])
+            if dhan_quotes and dhan_quotes[0].get('price'):
+                return dhan_quotes[0]
+        except Exception:
+            pass
+
+        # 2. Try Fyers
+        try:
+            fyers_quotes = fyers_engine.get_live_quotes([sym_upper])
+            if fyers_quotes and fyers_quotes[0].get('price'):
+                return fyers_quotes[0]
+        except Exception:
+            pass
+
         real_price = None
         real_chg = 0.0
 
+        # 3. Try yfinance
         if not skip_yfinance:
             try:
                 live_quotes = yfinance_engine.get_live_quotes([sym_upper])
@@ -669,7 +688,6 @@ class FinAIDatabase:
                 pass
 
         if real_price is not None:
-            # We have a real price, return it exactly as it is without micro drift
             return {
                 'symbol': sym_upper,
                 'price': round(real_price, 2),
@@ -678,20 +696,26 @@ class FinAIDatabase:
                 'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
 
-        # Micro-pip drift: deterministic per 30-second window, within tiny +/-0.03%
+        # 4. Fallback to curated base prices
         time_bucket = int(time.time() // 30)
         sym_seed = abs(hash(sym_upper)) % 100000
         seed_val = int((time_bucket + sym_seed) % (2**31 - 1))
         rng = np.random.RandomState(seed_val)
-        micro_drift = float(rng.normal(0.0, 0.0003))
+        micro_drift = float(rng.normal(0.0, 0.0002))
 
         data = self.CURATED_STOCK_MARKET_DATA.get(sym_upper)
         if data:
             base_px = float(data['base'])
             day_pct = float(data['day_pct'])
         else:
+            try:
+                extra_q = yfinance_engine.get_live_quotes([sym_upper])
+                if extra_q and extra_q[0].get('price'):
+                    return extra_q[0]
+            except Exception:
+                pass
             h = abs(hash(sym_upper))
-            base_px = float((h % 2200) + 150)
+            base_px = float((h % 1500) + 200)
             day_pct = round(((h % 200) - 95) / 50.0, 2)
 
         live_price = round(base_px * (1.0 + micro_drift), 2)
@@ -917,7 +941,10 @@ class FinAIDatabase:
             for i in range(len(resampled))
         ]
             
-        latest_price = target_price
+        if candles and len(candles) > 0 and data_source in ('yahoo_finance', 'dhan', 'fyers'):
+            latest_price = float(closes[-1])
+        else:
+            latest_price = target_price
         change_pct = target_change
         
         last_row = resampled.iloc[-1] if not resampled.empty else pd.Series()

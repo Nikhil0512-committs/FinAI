@@ -95,13 +95,13 @@ class WebSocketManager:
 
 ws_manager = WebSocketManager()
 
+subscribed_symbols = set()
+
 # ─── Background Market Streaming & Settlement Task ───
 async def market_streaming_worker():
-    """Resource-efficient background stream for SL/TP and periodic ticks.
-    Optimized for Render free-tier: runs every 30s instead of 3s,
-    uses cached/synthetic quotes to avoid hammering yfinance."""
-    symbols = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'ADANIENT', 'SBIN', 'TATAMOTORS', 'ITC', 'LT']
-    tick_counter = 0
+    """Resource-efficient background stream for SL/TP, active symbols, and market indices."""
+    base_symbols = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'ADANIENT', 'SBIN', 'TATAMOTORS', 'ITC', 'LT']
+    loop_count = 0
     while True:
         try:
             # 1. Process SL/TP triggers (always — critical for trade integrity)
@@ -115,9 +115,11 @@ async def market_streaming_worker():
 
             # 2. Broadcast ticks only if WebSocket clients are connected
             if ws_manager.active_connections:
-                for sym in symbols:
-                    # Fetch real prices for background stream to prevent overwriting frontend with synthetic data
-                    q = await asyncio.to_thread(db.get_local_latest_quote, sym, False)
+                active_symbols = list(dict.fromkeys(base_symbols + list(subscribed_symbols)))
+                quotes = await asyncio.to_thread(yfinance_engine.get_live_quotes, active_symbols)
+                quote_map = {q['symbol']: q for q in quotes if q.get('price')}
+                for sym in active_symbols:
+                    q = quote_map.get(sym) or await asyncio.to_thread(db.get_local_latest_quote, sym, False)
                     tick_msg = {
                         "type": "TICK",
                         "symbol": sym,
@@ -128,12 +130,19 @@ async def market_streaming_worker():
                     await redis_engine.publish_market_tick(sym, tick_msg)
                     await ws_manager.broadcast(tick_msg)
 
-            tick_counter += 1
-            await asyncio.sleep(30.0)  # 30s interval to stay within Render free-tier limits
+                if loop_count % 2 == 0:
+                    indices = await asyncio.to_thread(yfinance_engine.get_market_indices)
+                    await ws_manager.broadcast({
+                        "type": "INDICES",
+                        "data": indices
+                    })
+
+            loop_count += 1
+            await asyncio.sleep(5.0)  # Stream every 5s for active clients
         except asyncio.CancelledError:
             break
-        except Exception as e:
-            await asyncio.sleep(30.0)
+        except Exception:
+            await asyncio.sleep(10.0)
 
 _streaming_task = None
 
@@ -143,6 +152,8 @@ async def on_startup():
     await redis_engine.init()
     await kafka_engine.init()
     _streaming_task = asyncio.create_task(market_streaming_worker())
+    asyncio.create_task(asyncio.to_thread(db.get_live_stock_snapshot, 250))
+    asyncio.create_task(asyncio.to_thread(yfinance_engine.get_market_indices))
 
 @app.on_event("shutdown")
 async def on_shutdown():
@@ -169,6 +180,19 @@ async def websocket_stream(websocket: WebSocket):
                 action = payload.get('action')
                 if action == 'PING':
                     await websocket.send_text(json.dumps({"type": "PONG"}))
+                elif action == 'SUBSCRIBE':
+                    sub_sym = payload.get('symbol')
+                    if sub_sym:
+                        clean_sym = str(sub_sym).upper().strip()
+                        subscribed_symbols.add(clean_sym)
+                        q = await asyncio.to_thread(db.get_local_latest_quote, clean_sym, False)
+                        await websocket.send_text(json.dumps({
+                            "type": "TICK",
+                            "symbol": clean_sym,
+                            "price": q.get('price'),
+                            "change_pct": q.get('change_pct', 0.0),
+                            "timestamp": asyncio.get_event_loop().time()
+                        }))
             except Exception:
                 pass
     except WebSocketDisconnect:
@@ -248,6 +272,10 @@ def health_check():
         }
     }
 
+@app.get("/api/market-indices")
+def get_market_indices():
+    return yfinance_engine.get_market_indices()
+
 @app.get("/api/market-status")
 def get_market_status():
     from datetime import datetime
@@ -255,19 +283,18 @@ def get_market_status():
     ist = pytz.timezone('Asia/Kolkata')
     now_ist = datetime.now(ist)
     is_open = db.is_market_open()
+    indices = yfinance_engine.get_market_indices()
     return {
         "is_open": is_open,
         "current_time_ist": now_ist.strftime('%Y-%m-%d %H:%M:%S IST'),
         "session": "LIVE_MARKET" if is_open else "AMO_OFF_MARKET_QUEUED",
-        "next_open": "09:15 AM IST" if not is_open else "Active Now"
+        "next_open": "09:15 AM IST" if not is_open else "Active Now",
+        "indices": indices
     }
 
 @app.get("/api/stocks")
 def list_stocks():
-    stocks = db.get_stock_list()
-    # Return stocks instantly without live price lookups to prevent connection timeouts
-    # The frontend will immediately call /api/live-stocks to hydrate the prices
-    return {"stocks": stocks}
+    return {"stocks": db.get_live_stock_snapshot(limit=250)}
 
 @app.get("/api/live-stocks")
 def list_live_stocks(limit: int = Query(500, ge=1, le=2000)):

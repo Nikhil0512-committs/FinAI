@@ -78,7 +78,16 @@ export const TradingProvider = ({ children }) => {
       if (res.ok) {
         const data = await res.json();
         if (data.stocks && data.stocks.length > 0) {
-          setStockList(data.stocks);
+          setStockList((prev) => {
+            const prevMap = new Map((prev || []).map((s) => [s.symbol, s]));
+            return data.stocks.map((stock) => {
+              const old = prevMap.get(stock.symbol);
+              const px = stock.price !== undefined && stock.price !== null ? stock.price : old?.price;
+              const chg = stock.change_pct !== undefined && stock.change_pct !== null ? stock.change_pct : old?.change_pct;
+              if (px) livePriceCache.current[stock.symbol] = px;
+              return { ...stock, price: px, change_pct: chg };
+            });
+          });
         }
 
         try {
@@ -87,7 +96,15 @@ export const TradingProvider = ({ children }) => {
             const liveData = await liveRes.json();
             if (liveData.stocks && liveData.stocks.length > 0) {
               const liveBySymbol = new Map(liveData.stocks.map((stock) => [stock.symbol, stock]));
-              setStockList((prev) => prev.map((stock) => liveBySymbol.get(stock.symbol) || stock));
+              setStockList((prev) =>
+                (prev || []).map((stock) => {
+                  const live = liveBySymbol.get(stock.symbol);
+                  if (!live) return stock;
+                  const px = live.price !== undefined && live.price !== null ? live.price : stock.price;
+                  if (px) livePriceCache.current[stock.symbol] = px;
+                  return { ...stock, ...live, price: px };
+                })
+              );
             }
           }
         } catch (liveErr) {
@@ -112,7 +129,6 @@ export const TradingProvider = ({ children }) => {
         const data = await res.json();
         setCandles(data.candles || []);
         if (data.candles && data.candles.length > 0) {
-          // Only update market data source info, let fetchLiveQuote handle the actual price
           setMarketDataSource(data.source || 'broker_api');
           setMarketDataError(data.error || null);
         }
@@ -144,6 +160,16 @@ export const TradingProvider = ({ children }) => {
           setCurrentQuote({ price: px, change_pct: data.change_pct, time: data.time, symbol: symUpper });
           setMarketDataSource(data.source || 'broker_api');
           setMarketDataError(null);
+          // Keep stockList synchronized
+          setStockList((prev) => {
+            if (!prev || prev.length === 0) return prev;
+            return prev.map(s => {
+              if (String(s.symbol || '').toUpperCase().trim() === symUpper) {
+                return { ...s, price: px, change_pct: data.change_pct };
+              }
+              return s;
+            });
+          });
         }
       }
     } catch (e) {
@@ -219,43 +245,21 @@ export const TradingProvider = ({ children }) => {
   };
 
   const [marketStatus, setMarketStatus] = useState({ is_open: false, session: 'AMO_OFF_MARKET_QUEUED', next_open: '09:15 AM IST' });
+  const [marketIndices, setMarketIndices] = useState({
+    nifty: { symbol: 'NIFTY', name: 'NIFTY 50', price: 22535.0, change_pct: 0.50 },
+    banknifty: { symbol: 'BANKNIFTY', name: 'BANK NIFTY', price: 54675.85, change_pct: 0.41 }
+  });
 
   const fetchMarketStatus = async () => {
     try {
-      const now = new Date();
-      const formatter = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false, weekday: 'short' });
-      const parts = formatter.formatToParts(now);
-      const getPart = (type) => parts.find(p => p.type === type)?.value;
-      
-      const hour = parseInt(getPart('hour'), 10);
-      const minute = parseInt(getPart('minute'), 10);
-      const weekday = getPart('weekday');
-      
-      let is_open = false;
-      let session = 'CLOSED';
-      let next_open = '09:15 AM IST';
-      
-      if (weekday === 'Sat' || weekday === 'Sun') {
-        session = 'WEEKEND';
-      } else {
-        const timeNum = hour * 100 + minute;
-        if (timeNum >= 915 && timeNum < 1530) {
-          is_open = true;
-          session = 'REGULAR';
-        } else if (timeNum >= 900 && timeNum < 915) {
-          session = 'PRE_OPEN';
-        } else {
-          session = 'CLOSED';
+      const res = await fetch(`${API_BASE}/api/market-status`);
+      if (res.ok) {
+        const data = await res.json();
+        setMarketStatus(data);
+        if (data.indices) {
+          setMarketIndices(data.indices);
         }
       }
-
-      setMarketStatus({
-        is_open,
-        session,
-        next_open,
-        timestamp: now.toISOString(),
-        source: isDemoMode ? 'SIMULATED' : 'LIVE_API'
-      });
     } catch (e) {
       console.warn("Failed to set market status", e);
     }
@@ -269,39 +273,78 @@ export const TradingProvider = ({ children }) => {
     fetchMarketStatus();
   }, [userId]);
 
+  const wsRef = React.useRef(null);
+
   useEffect(() => {
     setCurrentQuote({ price: null, change_pct: null, time: null, symbol: selectedStock });
     fetchCandles(selectedStock, timeframe);
     fetchLiveQuote(selectedStock);
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && selectedStock) {
+      try {
+        wsRef.current.send(JSON.stringify({ action: 'SUBSCRIBE', symbol: selectedStock }));
+      } catch (e) {}
+    }
   }, [selectedStock, timeframe]);
 
   // Institutional WebSocket Streaming Connection (Redis PubSub & Kafka Stream)
   useEffect(() => {
-    let ws = null;
     let reconnectTimeout = null;
     let isMounted = true;
 
+    const getWsUrl = () => {
+      if (API_BASE) {
+        const base = API_BASE.replace(/^http/, 'ws').replace(/\/+$/, '');
+        return `${base}/ws/stream`;
+      }
+      if (typeof window !== 'undefined' && window.location) {
+        const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        return `${proto}//${window.location.host}/ws/stream`;
+      }
+      return 'ws://127.0.0.1:8000/ws/stream';
+    };
+
     const connectWebSocket = () => {
       try {
-        const wsUrl = API_BASE ? API_BASE.replace("http", "ws") + "/ws/stream" : 'ws://127.0.0.1:8000/ws/stream';
-
-        ws = new WebSocket(wsUrl);
+        const wsUrl = getWsUrl();
+        const ws = new WebSocket(wsUrl);
+        wsRef.current = ws;
 
         ws.onopen = () => {
           console.log('[FinAI Stream] WebSocket connection established.');
+          if (selectedStock) {
+            try {
+              ws.send(JSON.stringify({ action: 'SUBSCRIBE', symbol: selectedStock }));
+            } catch (e) {}
+          }
         };
 
         ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            if (data.type === 'TICK' && data.symbol === selectedStock) {
+            if (data.type === 'TICK' && data.symbol) {
+              const sym = String(data.symbol).toUpperCase().trim();
+              const px = Number(data.price);
               const chg = data.change_pct !== undefined && data.change_pct !== null ? Number(data.change_pct) : 0.0;
-              setCurrentQuote((prev) => ({
-                ...prev,
-                price: Number(data.price),
-                change_pct: chg,
-                symbol: data.symbol
-              }));
+
+              livePriceCache.current[sym] = px;
+
+              // Keep all components using stockList in sync
+              setStockList((prev) => {
+                if (!prev || prev.length === 0) return prev;
+                return prev.map(s => String(s.symbol || '').toUpperCase().trim() === sym ? { ...s, price: px, change_pct: chg } : s);
+              });
+
+              if (sym === String(selectedStock).toUpperCase().trim()) {
+                setCurrentQuote((prev) => ({
+                  ...prev,
+                  price: px,
+                  change_pct: chg,
+                  symbol: sym,
+                  time: data.time || new Date().toLocaleTimeString('en-US', { hour12: false })
+                }));
+              }
+            } else if (data.type === 'INDICES' && data.data) {
+              setMarketIndices(data.data);
             } else if (data.type === 'TRADE_EXECUTED' || data.type === 'TRADE_CLOSED' || data.type === 'SL_TP_TRIGGERED') {
               fetchTrades(userId);
               fetchPortfolio(userId);
@@ -332,12 +375,13 @@ export const TradingProvider = ({ children }) => {
     return () => {
       isMounted = false;
       if (reconnectTimeout) clearTimeout(reconnectTimeout);
-      if (ws) {
-        ws.onclose = null;
-        ws.close();
+      if (wsRef.current) {
+        wsRef.current.onclose = null;
+        wsRef.current.close();
+        wsRef.current = null;
       }
     };
-  }, [selectedStock, userId]);
+  }, [userId]);
 
   // Gentle fallback heartbeat polling
   useEffect(() => {
@@ -723,6 +767,7 @@ export const TradingProvider = ({ children }) => {
         marketDataSource,
         marketDataError,
         marketStatus,
+        marketIndices,
         loadingCandles,
         activeXaiReceipt,
         setActiveXaiReceipt,

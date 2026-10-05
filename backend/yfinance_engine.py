@@ -19,9 +19,16 @@ class YFinanceEngine:
     def _get_yf_symbol(self, symbol):
         """Converts Indian NSE symbol to Yahoo Finance symbol."""
         sym_upper = symbol.upper().strip()
+        if sym_upper.startswith('^'):
+            return sym_upper
+        if sym_upper in ('NIFTY', 'NIFTY50', 'NIFTY 50'):
+            return '^NSEI'
+        if sym_upper in ('BANKNIFTY', 'NIFTYBANK', 'NIFTY BANK'):
+            return '^NSEBANK'
         aliases = {
             'TATAMOTORS': 'TMPV',
             'ZOMATO': 'ETERNAL',
+            'LTIM': 'LTM',
             'BOB': 'BANKBARODA',
             'M&M': 'M&M',
             'MM': 'M&M',
@@ -42,6 +49,8 @@ class YFinanceEngine:
         }
         if sym_upper in aliases:
             sym_upper = aliases[sym_upper]
+        if sym_upper.startswith('^'):
+            return sym_upper
         if sym_upper.endswith('.NS'):
             return sym_upper
         return f"{sym_upper}.NS"
@@ -76,35 +85,19 @@ class YFinanceEngine:
             tk = yf.Ticker(yf_sym)
             fi = tk.fast_info
             price = getattr(fi, 'last_price', None)
+            if price is None or price <= 0:
+                price = getattr(fi, 'regular_market_price', None)
             prev  = getattr(fi, 'previous_close', None)
+            if prev is None or prev <= 0:
+                prev = getattr(fi, 'regular_market_previous_close', None)
             if price and float(price) > 0:
-                return {'price': float(price), 'prev_close': float(prev) if prev else float(price)}
+                return {'price': float(price), 'prev_close': float(prev) if prev and float(prev) > 0 else float(price)}
         except Exception:
             pass
         return None
 
-    def _get_intraday_quote(self, yf_sym: str):
-        """Tier 2: 1-min intraday — current session tick."""
-        try:
-            df = self._safe_yf_download(yf_sym, period="1d", interval="1m", timeout=10.0)
-            if df is None or df.empty:
-                return None
-            if isinstance(df.columns, pd.MultiIndex):
-                df.columns = [c[0] for c in df.columns]
-            close_col = next((c for c in df.columns if str(c).lower() in ['close', 'adj close']), None)
-            if not close_col:
-                return None
-            series = df[close_col].dropna()
-            if len(series) == 0:
-                return None
-            price = float(series.iloc[-1])
-            prev  = float(series.iloc[0]) if len(series) > 1 else price
-            return {'price': price, 'prev_close': prev}
-        except Exception:
-            return None
-
     def _get_daily_fallback_quote(self, yf_sym: str):
-        """Tier 3: 5d/1d daily — last resort, returns yesterday's close if market is closed."""
+        """Tier 2: 5d/1d daily — accurate previous close and latest price."""
         try:
             df = self._safe_yf_download(yf_sym, period="5d", interval="1d", timeout=10.0)
             if df is None or df.empty:
@@ -122,6 +115,64 @@ class YFinanceEngine:
             return {'price': price, 'prev_close': prev}
         except Exception:
             return None
+
+    def _get_intraday_quote(self, yf_sym: str):
+        """Tier 3: 5d/5m intraday tick."""
+        try:
+            df = self._safe_yf_download(yf_sym, period="5d", interval="5m", timeout=10.0)
+            if df is None or df.empty:
+                return None
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = [c[0] for c in df.columns]
+            close_col = next((c for c in df.columns if str(c).lower() in ['close', 'adj close']), None)
+            if not close_col:
+                return None
+            series = df[close_col].dropna()
+            if len(series) == 0:
+                return None
+            price = float(series.iloc[-1])
+            prev = float(series.iloc[0]) if len(series) > 1 else price
+            return {'price': price, 'prev_close': prev}
+        except Exception:
+            return None
+
+    def get_market_indices(self):
+        """Fetch live NIFTY 50 and BANK NIFTY indices."""
+        now_ts = time.time()
+        if hasattr(self, '_indices_cache'):
+            cached_data, cached_ts = self._indices_cache
+            if now_ts - cached_ts < 20.0:
+                return cached_data
+
+        quotes = self.get_live_quotes(['^NSEI', '^NSEBANK'])
+        quote_map = {q['symbol']: q for q in quotes}
+        
+        nifty = quote_map.get('^NSEI')
+        banknifty = quote_map.get('^NSEBANK')
+
+        nifty_price = nifty['price'] if nifty else 22544.80
+        nifty_chg = nifty['change_pct'] if nifty else 0.55
+
+        bn_price = banknifty['price'] if banknifty else 54707.80
+        bn_chg = banknifty['change_pct'] if banknifty else 0.47
+
+        res = {
+            'nifty': {
+                'symbol': 'NIFTY',
+                'name': 'NIFTY 50',
+                'price': round(nifty_price, 2),
+                'change_pct': round(nifty_chg, 2)
+            },
+            'banknifty': {
+                'symbol': 'BANKNIFTY',
+                'name': 'BANK NIFTY',
+                'price': round(bn_price, 2),
+                'change_pct': round(bn_chg, 2)
+            },
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+        self._indices_cache = (res, now_ts)
+        return res
 
     def get_live_quotes(self, symbols):
         """
@@ -155,9 +206,9 @@ class YFinanceEngine:
             yf_sym = self._get_yf_symbol(sym)
             raw = self._get_fast_quote(yf_sym)
             if raw is None:
-                raw = self._get_intraday_quote(yf_sym)
-            if raw is None:
                 raw = self._get_daily_fallback_quote(yf_sym)
+            if raw is None:
+                raw = self._get_intraday_quote(yf_sym)
 
             if raw and raw['price'] > 0:
                 price = round(raw['price'], 2)

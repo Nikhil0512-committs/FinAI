@@ -61,9 +61,10 @@ export const TerminalPage = () => {
       fetchIntel();
   }, [selectedStock]);
 
-  const activePrice = currentQuote?.price || 2816.80;
-  const changePct = currentQuote?.change_pct || -2.98;
-  const changeAmt = currentQuote?.change_amt || -86.45;
+  const selectedStockObj = stockList?.find(s => s.symbol === selectedStock);
+  const activePrice = currentQuote?.price || selectedStockObj?.price || (candles?.length > 0 ? candles[candles.length - 1].close : 1500.0);
+  const changePct = currentQuote?.change_pct !== null && currentQuote?.change_pct !== undefined ? currentQuote.change_pct : (selectedStockObj?.change_pct || 0.0);
+  const changeAmt = currentQuote?.change_amt || (activePrice * (changePct / 100));
   const totalValue = quantity * activePrice;
   const isPositiveChange = changePct >= 0;
 
@@ -87,11 +88,20 @@ export const TerminalPage = () => {
     setSubmitting(false);
   };
 
+  const getPositionLivePrice = (pos) => {
+    const sym = String(pos.symbol || '').toUpperCase().trim();
+    if (sym === String(selectedStock).toUpperCase().trim() && activePrice) return activePrice;
+    const s = stockList?.find(item => item.symbol === sym);
+    if (s && s.price) return s.price;
+    return parseFloat(pos.price || 0);
+  };
+
   // Calculations for Today's Performance
   const todayPnL = activePositions.reduce((acc, t) => {
     const entryPx = parseFloat(t.price || 0);
     const qty = parseFloat(t.quantity || 0);
-    const pnl = t.side === 'BUY' ? (activePrice - entryPx) * qty : (entryPx - activePrice) * qty;
+    const livePx = getPositionLivePrice(t);
+    const pnl = t.side === 'BUY' ? (livePx - entryPx) * qty : (entryPx - livePx) * qty;
     return acc + pnl;
   }, 0);
   const todayReturn = portfolio?.total_value > 0 ? (todayPnL / portfolio.total_value) * 100 : 0;

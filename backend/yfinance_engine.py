@@ -90,14 +90,33 @@ class YFinanceEngine:
             prev  = getattr(fi, 'previous_close', None)
             if prev is None or prev <= 0:
                 prev = getattr(fi, 'regular_market_previous_close', None)
+            o = getattr(fi, 'open', None)
+            h = getattr(fi, 'day_high', None)
+            l = getattr(fi, 'day_low', None)
+            v = getattr(fi, 'last_volume', None)
+            yh = getattr(fi, 'year_high', None)
+            yl = getattr(fi, 'year_low', None)
             if price and float(price) > 0:
-                return {'price': float(price), 'prev_close': float(prev) if prev and float(prev) > 0 else float(price)}
+                curr_px = float(price)
+                prev_px = float(prev) if prev and float(prev) > 0 else curr_px
+                return {
+                    'price': curr_px,
+                    'prev_close': prev_px,
+                    'open': float(o) if o and float(o) > 0 else curr_px,
+                    'high': float(h) if h and float(h) > 0 else max(curr_px, prev_px),
+                    'low': float(l) if l and float(l) > 0 else min(curr_px, prev_px),
+                    'day_high': float(h) if h and float(h) > 0 else max(curr_px, prev_px),
+                    'day_low': float(l) if l and float(l) > 0 else min(curr_px, prev_px),
+                    'volume': int(v) if v and int(v) > 0 else 0,
+                    'high_52w': float(yh) if yh and float(yh) > 0 else None,
+                    'low_52w': float(yl) if yl and float(yl) > 0 else None,
+                }
         except Exception:
             pass
         return None
 
     def _get_daily_fallback_quote(self, yf_sym: str):
-        """Tier 2: 5d/1d daily — accurate previous close and latest price."""
+        """Tier 2: 5d/1d daily — accurate previous close, open, high, low, volume, and latest price."""
         try:
             df = self._safe_yf_download(yf_sym, period="5d", interval="1d", timeout=10.0)
             if df is None or df.empty:
@@ -105,6 +124,10 @@ class YFinanceEngine:
             if isinstance(df.columns, pd.MultiIndex):
                 df.columns = [c[0] for c in df.columns]
             close_col = next((c for c in df.columns if str(c).lower() in ['close', 'adj close']), None)
+            open_col = next((c for c in df.columns if str(c).lower() == 'open'), None)
+            high_col = next((c for c in df.columns if str(c).lower() == 'high'), None)
+            low_col = next((c for c in df.columns if str(c).lower() == 'low'), None)
+            vol_col = next((c for c in df.columns if str(c).lower() == 'volume'), None)
             if not close_col:
                 return None
             series = df[close_col].dropna()
@@ -112,7 +135,20 @@ class YFinanceEngine:
                 return None
             price = float(series.iloc[-1])
             prev  = float(series.iloc[-2]) if len(series) >= 2 else price
-            return {'price': price, 'prev_close': prev}
+            o = float(df[open_col].dropna().iloc[-1]) if open_col and len(df[open_col].dropna()) > 0 else price
+            h = float(df[high_col].dropna().iloc[-1]) if high_col and len(df[high_col].dropna()) > 0 else max(price, prev)
+            l = float(df[low_col].dropna().iloc[-1]) if low_col and len(df[low_col].dropna()) > 0 else min(price, prev)
+            v = int(df[vol_col].dropna().iloc[-1]) if vol_col and len(df[vol_col].dropna()) > 0 else 0
+            return {
+                'price': price,
+                'prev_close': prev,
+                'open': o,
+                'high': h,
+                'low': l,
+                'day_high': h,
+                'day_low': l,
+                'volume': v
+            }
         except Exception:
             return None
 
@@ -125,6 +161,10 @@ class YFinanceEngine:
             if isinstance(df.columns, pd.MultiIndex):
                 df.columns = [c[0] for c in df.columns]
             close_col = next((c for c in df.columns if str(c).lower() in ['close', 'adj close']), None)
+            open_col = next((c for c in df.columns if str(c).lower() == 'open'), None)
+            high_col = next((c for c in df.columns if str(c).lower() == 'high'), None)
+            low_col = next((c for c in df.columns if str(c).lower() == 'low'), None)
+            vol_col = next((c for c in df.columns if str(c).lower() == 'volume'), None)
             if not close_col:
                 return None
             series = df[close_col].dropna()
@@ -132,7 +172,20 @@ class YFinanceEngine:
                 return None
             price = float(series.iloc[-1])
             prev = float(series.iloc[0]) if len(series) > 1 else price
-            return {'price': price, 'prev_close': prev}
+            o = float(df[open_col].dropna().iloc[-1]) if open_col and len(df[open_col].dropna()) > 0 else price
+            h = float(df[high_col].dropna().iloc[-1]) if high_col and len(df[high_col].dropna()) > 0 else max(price, prev)
+            l = float(df[low_col].dropna().iloc[-1]) if low_col and len(df[low_col].dropna()) > 0 else min(price, prev)
+            v = int(df[vol_col].dropna().iloc[-1]) if vol_col and len(df[vol_col].dropna()) > 0 else 0
+            return {
+                'price': price,
+                'prev_close': prev,
+                'open': o,
+                'high': h,
+                'low': l,
+                'day_high': h,
+                'day_low': l,
+                'volume': v
+            }
         except Exception:
             return None
 
@@ -214,11 +267,24 @@ class YFinanceEngine:
                 price = round(raw['price'], 2)
                 prev = raw.get('prev_close') or price
                 chg = round(((price - prev) / prev) * 100.0, 2) if prev > 0 else 0.0
+                o = raw.get('open', price)
+                h = raw.get('high', price)
+                l = raw.get('low', price)
+                v = raw.get('volume', 0)
                 q = {
                     'symbol': sym,
                     'price': price,
                     'prev_close': round(prev, 2),
+                    'open': round(o, 2),
+                    'high': round(h, 2),
+                    'low': round(l, 2),
+                    'day_high': round(h, 2),
+                    'day_low': round(l, 2),
+                    'volume': v,
+                    'range': f"₹{l:.2f} - ₹{h:.2f}",
                     'change_pct': chg,
+                    'high_52w': raw.get('high_52w'),
+                    'low_52w': raw.get('low_52w'),
                     'source': self.source,
                     'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 }
@@ -239,10 +305,22 @@ class YFinanceEngine:
             if df is not None and not df.empty:
                 if isinstance(df.columns, pd.MultiIndex):
                     close_df = df.get('Close')
+                    open_df = df.get('Open')
+                    high_df = df.get('High')
+                    low_df = df.get('Low')
+                    vol_df = df.get('Volume')
                 else:
                     close_df = df[['Close']] if 'Close' in df.columns else None
+                    open_df = df[['Open']] if 'Open' in df.columns else None
+                    high_df = df[['High']] if 'High' in df.columns else None
+                    low_df = df[['Low']] if 'Low' in df.columns else None
+                    vol_df = df[['Volume']] if 'Volume' in df.columns else None
                     if close_df is not None and len(yf_syms) == 1:
                         close_df.columns = [yf_syms[0]]
+                        if open_df is not None: open_df.columns = [yf_syms[0]]
+                        if high_df is not None: high_df.columns = [yf_syms[0]]
+                        if low_df is not None: low_df.columns = [yf_syms[0]]
+                        if vol_df is not None: vol_df.columns = [yf_syms[0]]
 
                 if close_df is not None and not close_df.empty:
                     for yf_s, orig_s in sym_map.items():
@@ -252,10 +330,35 @@ class YFinanceEngine:
                                 curr = float(series.iloc[-1].item() if hasattr(series.iloc[-1], 'item') else series.iloc[-1])
                                 prev = float(series.iloc[-2].item() if hasattr(series.iloc[-2], 'item') else series.iloc[-2]) if len(series) >= 2 else curr
                                 chg = round(((curr - prev) / prev) * 100.0, 2) if prev > 0 else 0.0
+                                
+                                o = curr
+                                h = max(curr, prev)
+                                l = min(curr, prev)
+                                v = 0
+                                if open_df is not None and yf_s in open_df.columns:
+                                    s_open = open_df[yf_s].dropna()
+                                    if len(s_open) > 0: o = float(s_open.iloc[-1])
+                                if high_df is not None and yf_s in high_df.columns:
+                                    s_high = high_df[yf_s].dropna()
+                                    if len(s_high) > 0: h = float(s_high.iloc[-1])
+                                if low_df is not None and yf_s in low_df.columns:
+                                    s_low = low_df[yf_s].dropna()
+                                    if len(s_low) > 0: l = float(s_low.iloc[-1])
+                                if vol_df is not None and yf_s in vol_df.columns:
+                                    s_vol = vol_df[yf_s].dropna()
+                                    if len(s_vol) > 0: v = int(s_vol.iloc[-1])
+
                                 q = {
                                     'symbol': orig_s,
                                     'price': round(curr, 2),
                                     'prev_close': round(prev, 2),
+                                    'open': round(o, 2),
+                                    'high': round(h, 2),
+                                    'low': round(l, 2),
+                                    'day_high': round(h, 2),
+                                    'day_low': round(l, 2),
+                                    'volume': v,
+                                    'range': f"₹{l:.2f} - ₹{h:.2f}",
                                     'change_pct': chg,
                                     'source': self.source,
                                     'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -268,8 +371,26 @@ class YFinanceEngine:
         return results
 
     def get_candles(self, symbol, timeframe='5m', limit=200):
-        """Fetch historical candles from yfinance with 300s cache and timeout safety."""
-        cache_key = (symbol.upper(), timeframe)
+        """Fetch historical candles from yfinance with 300s cache, flexible timeframe normalization, and timeout safety."""
+        tf_clean = str(timeframe).lower().strip()
+        tf_map = {
+            '1m': ('1m', '1d'),
+            '5m': ('5m', '5d'),
+            '15m': ('15m', '10d'),
+            '1h': ('1h', '1mo'),
+            '60m': ('1h', '1mo'),
+            '1d': ('1d', '6mo'),
+            '1day': ('1d', '6mo'),
+            '5d': ('1d', '1mo'),
+            '1mo': ('1d', '1y'),
+            '1mth': ('1d', '1y'),
+            '1y': ('1d', '2y'),
+            '5y': ('1wk', '5y'),
+            'all': ('1wk', '5y')
+        }
+        interval, period = tf_map.get(tf_clean, ('5m', '5d'))
+
+        cache_key = (symbol.upper(), interval, period)
         now_ts = time.time()
         if cache_key in self._candle_cache:
             cached_df, cached_ts = self._candle_cache[cache_key]
@@ -277,18 +398,6 @@ class YFinanceEngine:
                 return cached_df.tail(limit).copy()
 
         yf_sym = self._get_yf_symbol(symbol)
-        tf_map = {'1m': '1m', '5m': '5m', '15m': '15m', '1h': '1h', '1d': '1d'}
-        interval = tf_map.get(timeframe, '5m')
-        
-        period = "5d"
-        if interval in ['1m']:
-            period = "1d"
-        elif interval in ['15m']:
-            period = "10d"
-        elif interval in ['1h']:
-            period = "1mo"
-        elif interval in ['1d']:
-            period = "6mo"
             
         try:
             df = self._safe_yf_download(yf_sym, period=period, interval=interval, timeout=8.0)
@@ -445,6 +554,12 @@ class YFinanceEngine:
             beta = info.get('beta')
             ev_ebitda = info.get('enterpriseToEbitda')
 
+            open_val = info.get('open') or info.get('regularMarketOpen') or (getattr(fast, 'open', None) if fast else None)
+            high_val = info.get('dayHigh') or info.get('regularMarketDayHigh') or (getattr(fast, 'day_high', None) if fast else None)
+            low_val = info.get('dayLow') or info.get('regularMarketDayLow') or (getattr(fast, 'day_low', None) if fast else None)
+            prev_val = info.get('previousClose') or info.get('regularMarketPreviousClose') or (getattr(fast, 'previous_close', None) if fast else None)
+            vol_val = info.get('volume') or info.get('regularMarketVolume') or (getattr(fast, 'last_volume', None) if fast else None)
+
             if not pe and not ltp and mcap <= 0:
                 return None
 
@@ -456,6 +571,11 @@ class YFinanceEngine:
                 "tagline": f"{sector} / {industry} · Live NSE Fundamental Multiples",
                 "market_cap": mcap_str,
                 "scale": scale,
+                "open": open_val,
+                "day_high": high_val,
+                "day_low": low_val,
+                "prev_close": prev_val,
+                "volume": vol_val,
                 "pe_ratio": str(round(pe, 1)) if pe else "N/A",
                 "sector_pe": str(sector_pe),
                 "pb_ratio": str(round(pb, 2)) if pb else "N/A",

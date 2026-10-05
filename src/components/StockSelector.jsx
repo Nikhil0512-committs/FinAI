@@ -57,22 +57,35 @@ export const StockSelector = () => {
               />
             </div>
             <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
-              {filteredStocks.map((stock) => (
-                <button
-                  key={stock.symbol}
-                  onClick={() => {
-                    setSelectedStock(stock.symbol);
-                    setIsSearchActive(false);
-                    setSearchQuery('');
-                  }}
-                  className="w-full text-left px-4 py-3 hover:bg-[#0a1020] flex items-center justify-between transition-colors group border-b border-gray-900/50 last:border-0"
-                >
-                  <span className={`font-mono font-bold text-[13px] transition-colors ${stock.symbol === selectedStock ? 'text-cyan-400' : 'text-gray-300 group-hover:text-cyan-400'}`}>
-                    {stock.symbol}
-                  </span>
-                  <span className="text-[11px] text-gray-600 truncate max-w-[200px]">{stock.name}</span>
-                </button>
-              ))}
+              {filteredStocks.map((stock) => {
+                const px = Number(stock.price || 0);
+                const chg = Number(stock.change_pct || 0);
+                const isPos = chg >= 0;
+                return (
+                  <button
+                    key={stock.symbol}
+                    onClick={() => {
+                      setSelectedStock(stock.symbol);
+                      setIsSearchActive(false);
+                      setSearchQuery('');
+                    }}
+                    className="w-full text-left px-4 py-3 hover:bg-[#0a1020] flex items-center justify-between transition-colors group border-b border-gray-900/50 last:border-0"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className={`font-mono font-bold text-[13px] transition-colors ${stock.symbol === selectedStock ? 'text-cyan-400' : 'text-gray-300 group-hover:text-cyan-400'}`}>
+                        {stock.symbol}
+                      </span>
+                      <span className="text-[11px] text-gray-600 truncate max-w-[140px]">{stock.name}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-right">
+                      <span className="text-[12px] font-mono font-medium text-white">₹{px.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      <span className={`text-[11px] font-mono font-bold ${isPos ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {isPos ? '+' : ''}{chg.toFixed(2)}%
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
               {filteredStocks.length === 0 && (
                 <div className="px-4 py-8 text-center text-gray-600 font-mono text-[11px]">
                   No stocks found

@@ -125,6 +125,14 @@ async def market_streaming_worker():
                         "symbol": sym,
                         "price": q.get('price'),
                         "change_pct": q.get('change_pct', 0.0),
+                        "open": q.get('open'),
+                        "high": q.get('day_high') or q.get('high'),
+                        "low": q.get('day_low') or q.get('low'),
+                        "day_high": q.get('day_high') or q.get('high'),
+                        "day_low": q.get('day_low') or q.get('low'),
+                        "prev_close": q.get('prev_close'),
+                        "volume": q.get('volume'),
+                        "range": q.get('range'),
                         "timestamp": asyncio.get_event_loop().time()
                     }
                     await redis_engine.publish_market_tick(sym, tick_msg)
@@ -191,6 +199,14 @@ async def websocket_stream(websocket: WebSocket):
                             "symbol": clean_sym,
                             "price": q.get('price'),
                             "change_pct": q.get('change_pct', 0.0),
+                            "open": q.get('open'),
+                            "high": q.get('day_high') or q.get('high'),
+                            "low": q.get('day_low') or q.get('low'),
+                            "day_high": q.get('day_high') or q.get('high'),
+                            "day_low": q.get('day_low') or q.get('low'),
+                            "prev_close": q.get('prev_close'),
+                            "volume": q.get('volume'),
+                            "range": q.get('range'),
                             "timestamp": asyncio.get_event_loop().time()
                         }))
             except Exception:
@@ -331,8 +347,9 @@ async def get_live_quote(symbol: str):
     return {'symbol': sym, 'price': 1500.0, 'change_pct': 0.0, 'source': 'fallback'}
 
 @app.get("/api/candles/{symbol}")
-def get_candles(symbol: str, timeframe: str = Query('5m', enum=['1m', '5m', '15m', '1h', '1d']), limit: int = 150):
-    return db.get_stock_candles(symbol, timeframe=timeframe, limit=limit)
+def get_candles(symbol: str, timeframe: str = Query('5m'), limit: int = 150):
+    tf_clean = str(timeframe).lower().strip()
+    return db.get_stock_candles(symbol, timeframe=tf_clean, limit=limit)
 
 @app.post("/api/auth/register")
 @limiter.limit("5/minute")

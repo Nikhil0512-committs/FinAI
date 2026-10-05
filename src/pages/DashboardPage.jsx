@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTrading } from '../context/TradingContext';
 import { motion } from 'framer-motion';
 import {
@@ -9,6 +9,7 @@ import { ArrowRight, Clock, Crosshair, LayoutDashboard, TerminalSquare, BrainCir
 
 export const DashboardPage = () => {
   const { portfolio, trades, disciplineScore, setSelectedStock, marketStatus, stockList } = useTrading();
+  const navigate = useNavigate();
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -34,7 +35,7 @@ export const DashboardPage = () => {
   const formatRupee = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(val || 0);
 
   // Watchlist Tape
-  const watchlist = stockList?.slice(0, 5) || [];
+  const watchlist = stockList?.slice(0, 8) || [];
 
   // History / Session Activity
   const recentActivity = trades?.slice(0, 5) || [];
@@ -387,12 +388,23 @@ export const DashboardPage = () => {
                     {watchlist.map(item => {
                       const price = Number(item.price || 0);
                       const change = Number(item.change_pct || item.change || 0);
+                      const rangeDisplay = item.range || (item.day_low && item.day_high ? `₹${Number(item.day_low).toFixed(2)} - ₹${Number(item.day_high).toFixed(2)}` : '—');
                       return (
-                        <tr key={item.symbol} className="border-b border-gray-900/50 hover:bg-[#0f1728] transition-colors">
-                          <td className="py-3 px-4 text-white font-bold">{item.symbol}</td>
-                          <td className="py-3 px-4 text-right tabular-nums text-gray-300">{price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                          <td className={`py-3 px-4 text-right tabular-nums ${change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{change >= 0 ? '+' : ''}{change.toFixed(2)}%</td>
-                          <td className="py-3 px-4 text-right tabular-nums text-gray-500 hidden sm:table-cell">{item.range || 'N/A'}</td>
+                        <tr 
+                          key={item.symbol} 
+                          onClick={() => { setSelectedStock(item.symbol); navigate('/terminal'); }}
+                          className="border-b border-gray-900/50 hover:bg-[#11192e] transition-colors cursor-pointer group"
+                          title={`Click to open ${item.symbol} in Terminal`}
+                        >
+                          <td className="py-3 px-4 text-white font-bold group-hover:text-cyan-400 transition-colors">
+                            <div className="flex items-center gap-2">
+                              <span>{item.symbol}</span>
+                              <span className="text-[10px] text-gray-500 font-normal truncate max-w-[110px] hidden sm:inline">{item.name}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-right tabular-nums text-gray-200 font-medium">₹{price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                          <td className={`py-3 px-4 text-right tabular-nums font-bold ${change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{change >= 0 ? '+' : ''}{change.toFixed(2)}%</td>
+                          <td className="py-3 px-4 text-right tabular-nums text-gray-400 hidden sm:table-cell">{rangeDisplay}</td>
                         </tr>
                       );
                     })}

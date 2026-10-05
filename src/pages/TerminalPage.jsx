@@ -20,6 +20,7 @@ import { Link } from 'react-router-dom';
 export const TerminalPage = () => {
   const { 
     selectedStock, 
+    setSelectedStock,
     timeframe, 
     setTimeframe, 
     candles, 
@@ -42,6 +43,8 @@ export const TerminalPage = () => {
   
   const [fundamentals, setFundamentals] = useState(null);
   const [isChartExpanded, setIsChartExpanded] = useState(false);
+  const [isStockSearchOpen, setIsStockSearchOpen] = useState(false);
+  const [stockSearchQuery, setStockSearchQuery] = useState('');
 
   useEffect(() => {
       const fetchIntel = async () => {
@@ -67,6 +70,31 @@ export const TerminalPage = () => {
   const changeAmt = currentQuote?.change_amt || (activePrice * (changePct / 100));
   const totalValue = quantity * activePrice;
   const isPositiveChange = changePct >= 0;
+
+  // Genuine Intraday and Fundamental Metric Resolution
+  const quoteOpen = currentQuote?.open || fundamentals?.open || selectedStockObj?.open;
+  const quoteHigh = currentQuote?.day_high || currentQuote?.high || fundamentals?.day_high || selectedStockObj?.high || selectedStockObj?.day_high;
+  const quoteLow = currentQuote?.day_low || currentQuote?.low || fundamentals?.day_low || selectedStockObj?.low || selectedStockObj?.day_low;
+  const quotePrevClose = currentQuote?.prev_close || fundamentals?.prev_close || selectedStockObj?.prev_close || (activePrice - changeAmt);
+  const quoteVolume = currentQuote?.volume || fundamentals?.volume || selectedStockObj?.volume;
+  const quote52High = currentQuote?.high_52w || fundamentals?.high_52w || selectedStockObj?.high_52w;
+  const quote52Low = currentQuote?.low_52w || fundamentals?.low_52w || selectedStockObj?.low_52w;
+
+  const formatVolume = (vol) => {
+    if (!vol || isNaN(vol)) return typeof vol === 'string' ? vol : '—';
+    const num = Number(vol);
+    if (num >= 10000000) return `${(num / 10000000).toFixed(2)} Cr`;
+    if (num >= 100000) return `${(num / 100000).toFixed(2)} L`;
+    if (num >= 1000) return `${(num / 1000).toFixed(1)} K`;
+    return String(num);
+  };
+
+  const filteredTerminalStocks = stockSearchQuery.trim()
+    ? (stockList || []).filter(s =>
+        (s.symbol || '').toLowerCase().includes(stockSearchQuery.toLowerCase()) ||
+        (s.name || '').toLowerCase().includes(stockSearchQuery.toLowerCase())
+      ).slice(0, 15)
+    : (stockList || []).slice(0, 15);
 
   const activePositions = trades?.filter(t => t.status === 'EXECUTED') || [];
 
@@ -123,22 +151,97 @@ export const TerminalPage = () => {
     return null;
   };
 
+  const TIMEFRAMES = [
+    { id: '1m', label: '1M' },
+    { id: '5m', label: '5M' },
+    { id: '15m', label: '15M' },
+    { id: '1h', label: '1H' },
+    { id: '1d', label: '1D' }
+  ];
+
   return (
     <div className="min-h-full flex flex-col gap-5 p-6">
         
         {/* HEADER ASSET BAR */}
-        <div className="flex items-center justify-between bg-[#131722] rounded-2xl p-5 border border-[#1C212D] shrink-0 shadow-sm">
-            <div className="flex items-center gap-5">
-                <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg">
-                    <span className="text-blue-700 font-black text-sm tracking-tighter">{selectedStock?.substring(0, 5).toLowerCase() || 'adani'}</span>
+        <div className="flex items-center justify-between bg-[#131722] rounded-2xl p-5 border border-[#1C212D] shrink-0 shadow-sm relative">
+            <div className="flex items-center gap-5 relative">
+                <div className="w-14 h-14 bg-gradient-to-br from-white to-gray-200 rounded-xl flex items-center justify-center shadow-lg">
+                    <span className="text-blue-900 font-black text-sm tracking-tighter uppercase">{selectedStock?.substring(0, 4) || 'NSE'}</span>
                 </div>
                 <div>
-                    <h1 className="text-[28px] text-white font-bold tracking-tight leading-none mb-2">{selectedStock || 'ADANIENT'}</h1>
-                    <div className="flex items-center gap-3">
+                    <div className="relative">
+                        <button 
+                            onClick={() => setIsStockSearchOpen(!isStockSearchOpen)}
+                            className="flex items-center gap-2.5 group text-left focus:outline-none"
+                            title="Click to search and switch stocks"
+                        >
+                            <h1 className="text-[28px] text-white font-bold tracking-tight leading-none group-hover:text-[#00E6A8] transition-colors">
+                                {selectedStock || 'ADANIENT'}
+                            </h1>
+                            <ChevronDown className="w-5 h-5 text-gray-400 group-hover:text-[#00E6A8] transition-colors" />
+                        </button>
+
+                        {/* Interactive Stock Search Dropdown */}
+                        {isStockSearchOpen && (
+                            <div className="absolute left-0 top-full mt-3 w-[380px] md:w-[440px] bg-[#0c101a] border border-[#1C212D] rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col">
+                                <div className="p-3 border-b border-[#1C212D] bg-[#080b12]">
+                                    <input 
+                                        type="text" 
+                                        placeholder="Search 250+ NSE stocks..."
+                                        value={stockSearchQuery}
+                                        onChange={(e) => setStockSearchQuery(e.target.value)}
+                                        className="w-full bg-[#131722] border border-gray-800 text-sm text-white px-3.5 py-2.5 rounded-lg outline-none font-medium placeholder:text-gray-600 focus:border-[#00E6A8]"
+                                        autoFocus
+                                    />
+                                </div>
+                                <div className="max-h-[320px] overflow-y-auto custom-scrollbar">
+                                    {filteredTerminalStocks.map((s) => {
+                                        const px = Number(s.price || 0);
+                                        const chg = Number(s.change_pct || 0);
+                                        const isPos = chg >= 0;
+                                        return (
+                                            <button
+                                                key={s.symbol}
+                                                onClick={() => {
+                                                    setSelectedStock(s.symbol);
+                                                    setIsStockSearchOpen(false);
+                                                    setStockSearchQuery('');
+                                                }}
+                                                className={`w-full text-left px-4 py-3 hover:bg-[#151c2c] flex items-center justify-between border-b border-gray-900/60 last:border-0 transition-colors ${s.symbol === selectedStock ? 'bg-[#00E6A8]/10' : ''}`}
+                                            >
+                                                <div className="flex flex-col">
+                                                    <span className={`font-mono font-bold text-sm ${s.symbol === selectedStock ? 'text-[#00E6A8]' : 'text-white'}`}>
+                                                        {s.symbol}
+                                                    </span>
+                                                    <span className="text-[11px] text-gray-500 truncate max-w-[200px]">
+                                                        {s.name || 'NSE Equity'}
+                                                    </span>
+                                                </div>
+                                                <div className="flex flex-col items-end">
+                                                    <span className="font-mono font-bold text-sm text-white">
+                                                        ₹{px.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    </span>
+                                                    <span className={`text-[11px] font-mono font-bold ${isPos ? 'text-[#00E6A8]' : 'text-rose-500'}`}>
+                                                        {isPos ? '+' : ''}{chg.toFixed(2)}%
+                                                    </span>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                    {filteredTerminalStocks.length === 0 && (
+                                        <div className="p-6 text-center text-xs text-gray-500">No stocks matching query</div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex items-center gap-3 mt-2">
                         <span className="text-xs text-gray-400 font-medium tracking-wide">NSE • EQ</span>
+                        <span className="text-xs text-gray-500 truncate max-w-[220px]">{selectedStockObj?.name || 'Equity'}</span>
                         <div className="flex items-center gap-2 ml-2">
-                            <span className="px-2.5 py-1 bg-[#1C212D] text-gray-400 text-[10px] rounded-full font-medium tracking-wide">Large Cap</span>
-                            <span className="px-2.5 py-1 bg-[#1C212D] text-gray-400 text-[10px] rounded-full font-medium tracking-wide">High Volume</span>
+                            <span className="px-2.5 py-0.5 bg-[#1C212D] text-[#00E6A8] text-[10px] rounded-full font-medium tracking-wide border border-[#00E6A8]/30">Live Price Feed</span>
+                            <span className="px-2.5 py-0.5 bg-[#1C212D] text-gray-400 text-[10px] rounded-full font-medium tracking-wide">Real-time</span>
                         </div>
                     </div>
                 </div>
@@ -165,14 +268,14 @@ export const TerminalPage = () => {
             <div className={isChartExpanded ? 'fixed inset-6 z-50 bg-[#131722] rounded-2xl border border-[#1C212D] flex flex-col shadow-2xl overflow-hidden' : 'flex-1 flex flex-col bg-[#131722] rounded-2xl border border-[#1C212D] overflow-hidden shadow-sm relative'}>
                 <div className="flex justify-between items-center p-5 border-b border-[#1C212D]">
                     <div className="flex items-center gap-6">
-                        {['1d', '5d', '1m', '3m', '1y', '5y'].map((t) => (
+                        {TIMEFRAMES.map((tf) => (
                             <button 
-                              key={t} 
-                              onClick={() => setTimeframe(t)}
-                              className={`text-[13px] font-medium pb-1 relative uppercase ${timeframe === t ? 'text-[#00E6A8]' : 'text-gray-500 hover:text-gray-300'}`}
+                              key={tf.id} 
+                              onClick={() => setTimeframe(tf.id)}
+                              className={`text-[13px] font-medium pb-1 relative uppercase ${timeframe === tf.id ? 'text-[#00E6A8]' : 'text-gray-500 hover:text-gray-300'}`}
                             >
-                                {t}
-                                {timeframe === t && <div className="absolute -bottom-[21px] left-0 right-0 h-0.5 bg-[#00E6A8]"></div>}
+                                {tf.label}
+                                {timeframe === tf.id && <div className="absolute -bottom-[21px] left-0 right-0 h-0.5 bg-[#00E6A8]"></div>}
                             </button>
                         ))}
                     </div>
@@ -208,15 +311,15 @@ export const TerminalPage = () => {
                 {/* Metrics Below Chart */}
                 <div className="flex flex-wrap items-center justify-between gap-4 p-5 border-t border-[#1C212D] bg-[#0B0E14]/30">
                     {[
-                        {l: 'Open', v: fundamentals?.open ? `₹${parseFloat(fundamentals.open).toFixed(2)}` : `₹${(activePrice - 10).toFixed(2)}`},
-                        {l: 'High', v: fundamentals?.day_high ? `₹${parseFloat(fundamentals.day_high).toFixed(2)}` : `₹${(activePrice + 20).toFixed(2)}`, c: 'text-[#00E6A8]'},
-                        {l: 'Low', v: fundamentals?.day_low ? `₹${parseFloat(fundamentals.day_low).toFixed(2)}` : `₹${(activePrice - 30).toFixed(2)}`, c: 'text-rose-500'},
-                        {l: 'Prev Close', v: fundamentals?.prev_close ? `₹${parseFloat(fundamentals.prev_close).toFixed(2)}` : `₹${(activePrice - changeAmt).toFixed(2)}`},
-                        {l: 'Volume', v: fundamentals?.volume || '1.42 Cr'},
-                        {l: 'Market Cap', v: fundamentals?.market_cap || '₹3.24 L Cr'},
-                        {l: 'P/E', v: fundamentals?.pe_ratio || '107.6'},
-                        {l: '52W High', v: fundamentals?.high_52w ? `₹${parseFloat(String(fundamentals.high_52w).replace(/[^0-9.]/g, '')).toFixed(2)}` : `₹${(activePrice * 1.3).toFixed(2)}`},
-                        {l: '52W Low', v: fundamentals?.low_52w ? `₹${parseFloat(String(fundamentals.low_52w).replace(/[^0-9.]/g, '')).toFixed(2)}` : `₹${(activePrice * 0.7).toFixed(2)}`},
+                        {l: 'Open', v: quoteOpen ? `₹${parseFloat(quoteOpen).toFixed(2)}` : '—'},
+                        {l: 'High', v: quoteHigh ? `₹${parseFloat(quoteHigh).toFixed(2)}` : '—', c: 'text-[#00E6A8]'},
+                        {l: 'Low', v: quoteLow ? `₹${parseFloat(quoteLow).toFixed(2)}` : '—', c: 'text-rose-500'},
+                        {l: 'Prev Close', v: quotePrevClose ? `₹${parseFloat(quotePrevClose).toFixed(2)}` : '—'},
+                        {l: 'Volume', v: formatVolume(quoteVolume)},
+                        {l: 'Market Cap', v: fundamentals?.market_cap || selectedStockObj?.market_cap || '—'},
+                        {l: 'P/E', v: fundamentals?.pe_ratio || selectedStockObj?.pe_ratio || '—'},
+                        {l: '52W High', v: quote52High ? `₹${parseFloat(String(quote52High).replace(/[^0-9.]/g, '')).toFixed(2)}` : '—'},
+                        {l: '52W Low', v: quote52Low ? `₹${parseFloat(String(quote52Low).replace(/[^0-9.]/g, '')).toFixed(2)}` : '—'},
                     ].map(m => (
                         <div key={m.l} className="flex flex-col min-w-[60px]">
                             <span className="text-[11px] text-gray-500 mb-1.5 font-medium">{m.l}</span>
@@ -413,7 +516,8 @@ export const TerminalPage = () => {
                             activePositions.map(t => {
                                 const entryPx = parseFloat(t.price || 0);
                                 const qty = parseFloat(t.quantity || 0);
-                                const pnl = t.side === 'BUY' ? (activePrice - entryPx) * qty : (entryPx - activePrice) * qty;
+                                const livePx = getPositionLivePrice(t);
+                                const pnl = t.side === 'BUY' ? (livePx - entryPx) * qty : (entryPx - livePx) * qty;
                                 const pnlPct = (pnl / (entryPx * qty)) * 100;
                                 const isPnlPos = pnl >= 0;
                                 return (
@@ -432,7 +536,7 @@ export const TerminalPage = () => {
                                         </div>
                                         <div className="flex flex-col">
                                             <span className="text-[10px] text-gray-500 mb-0.5 font-medium">LTP</span>
-                                            <span className="text-xs text-white font-bold">₹{activePrice.toFixed(2)}</span>
+                                            <span className="text-xs text-white font-bold">₹{livePx.toFixed(2)}</span>
                                         </div>
                                         <div className="flex flex-col">
                                             <span className="text-[10px] text-gray-500 mb-0.5 font-medium">P&L</span>
@@ -444,7 +548,7 @@ export const TerminalPage = () => {
                                             </div>
                                         </div>
                                         <div className="flex justify-end">
-                                            <button onClick={() => closeTrade(t.trade_code, activePrice)} className="text-[10px] px-3 py-1.5 bg-[#1C212D] rounded border border-gray-700 hover:bg-gray-800 text-gray-300 transition-colors">Square Off</button>
+                                            <button onClick={() => closeTrade(t.trade_code, livePx)} className="text-[10px] px-3 py-1.5 bg-[#1C212D] rounded border border-gray-700 hover:bg-gray-800 text-gray-300 transition-colors">Square Off</button>
                                         </div>
                                     </div>
                                 );

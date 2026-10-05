@@ -118,7 +118,10 @@ export const MarketIntelligence = () => {
   };
 
   useEffect(() => {
-    setCurrentQuote({ price: 0, change_pct: 0 });
+    const found = stockList?.find(s => s.symbol === selectedStock);
+    if (found && found.price) {
+      setCurrentQuote({ price: found.price, change_pct: found.change_pct || 0 });
+    }
     loadAllData(selectedStock, timeframe);
   }, [selectedStock, timeframe]);
 
@@ -185,7 +188,7 @@ export const MarketIntelligence = () => {
   };
 
   const matchedStock = stockList.find(s => s.symbol === selectedStock);
-  const activePrice = currentQuote.price || (candlesData?.length ? candlesData[candlesData.length - 1].close : (matchedStock?.price || 0));
+  const activePrice = currentQuote.price || (matchedStock?.price || 0) || (candlesData?.length ? candlesData[candlesData.length - 1].close : 0);
   const activeChangePct = (currentQuote.price ? currentQuote.change_pct : (matchedStock?.change_pct ?? currentQuote.change_pct)) || 0;
   
   // Real Prediction Output

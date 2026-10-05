@@ -20,12 +20,21 @@ const SidebarLink = ({ to, icon: Icon, label }) => {
 
 export const AppLayout = ({ children }) => {
   const { user, logout } = useAuth();
-  const { trades, marketIndices } = useTrading();
+  const { trades, marketIndices, stockList, setSelectedStock } = useTrading();
   const navigate = useNavigate();
   
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchActive, setIsSearchActive] = useState(false);
+
+  const filteredSearchStocks = searchQuery.trim() 
+    ? (stockList || []).filter(s => 
+        (s.symbol || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+        (s.name && s.name.toLowerCase().includes(searchQuery.toLowerCase()))
+      ).slice(0, 10)
+    : [];
 
   const recentTrades = trades?.slice(0, 5) || [];
   const unreadCount = recentTrades.length;
@@ -67,10 +76,62 @@ export const AppLayout = ({ children }) => {
         
         {/* TOP BAR */}
         <header className={`h-20 border-b flex items-center justify-between px-6 shrink-0 z-20 ${isDarkMode ? 'border-[#1C212D] bg-[#0B0E14]' : 'border-gray-200 bg-white'}`}>
-           {/* Search Box */}
-           <div className={`flex items-center rounded-lg px-4 py-2.5 w-[420px] border focus-within:border-[#00E6A8]/50 transition-colors ${isDarkMode ? 'bg-[#131722] border-[#1C212D]' : 'bg-gray-100 border-gray-200'}`}>
-               <Search className="text-gray-500 w-4 h-4 mr-3" />
-               <input type="text" placeholder="Search stocks, indices, or strategies..." className={`bg-transparent border-none outline-none text-sm w-full font-medium ${isDarkMode ? 'text-gray-300 placeholder:text-gray-600' : 'text-gray-800 placeholder:text-gray-400'}`} />
+           {/* Search Box with Real Stock Live Dropdown */}
+           <div className="relative">
+             <div className={`flex items-center rounded-lg px-4 py-2.5 w-[360px] md:w-[420px] border focus-within:border-[#00E6A8]/50 transition-colors ${isDarkMode ? 'bg-[#131722] border-[#1C212D]' : 'bg-gray-100 border-gray-200'}`}>
+                 <Search className="text-gray-500 w-4 h-4 mr-3 shrink-0" />
+                 <input 
+                   type="text" 
+                   value={searchQuery}
+                   onChange={(e) => {
+                     setSearchQuery(e.target.value);
+                     setIsSearchActive(true);
+                   }}
+                   onFocus={() => setIsSearchActive(true)}
+                   placeholder="Search 250+ NSE stocks, e.g. RELIANCE, TCS, PNB..." 
+                   className={`bg-transparent border-none outline-none text-sm w-full font-medium ${isDarkMode ? 'text-gray-200 placeholder:text-gray-600' : 'text-gray-800 placeholder:text-gray-400'}`} 
+                 />
+                 {searchQuery && (
+                   <button onClick={() => { setSearchQuery(''); setIsSearchActive(false); }} className="text-gray-500 hover:text-gray-300 text-xs ml-2">✕</button>
+                 )}
+             </div>
+
+             {isSearchActive && searchQuery.trim() && (
+               <div className={`absolute left-0 top-full mt-2 w-[420px] max-h-80 overflow-y-auto rounded-xl border shadow-2xl z-50 ${isDarkMode ? 'bg-[#131722] border-[#1C212D]' : 'bg-white border-gray-200'}`}>
+                 {filteredSearchStocks.length > 0 ? (
+                   filteredSearchStocks.map((stock) => {
+                     const px = Number(stock.price || 0);
+                     const chg = Number(stock.change_pct || 0);
+                     const isPos = chg >= 0;
+                     return (
+                       <div
+                         key={stock.symbol}
+                         onClick={() => {
+                           setSelectedStock(stock.symbol);
+                           setSearchQuery('');
+                           setIsSearchActive(false);
+                           navigate('/terminal');
+                         }}
+                         className={`px-4 py-3 flex items-center justify-between cursor-pointer border-b transition-colors ${isDarkMode ? 'border-[#1C212D]/60 hover:bg-[#1C212D]' : 'border-gray-100 hover:bg-gray-50'}`}
+                       >
+                         <div className="flex flex-col">
+                           <span className="font-mono font-bold text-sm text-white">{stock.symbol}</span>
+                           <span className="text-[11px] text-gray-500 truncate max-w-[200px]">{stock.name || 'NSE Equity'}</span>
+                         </div>
+                         <div className="flex flex-col items-end">
+                           <span className="font-mono font-semibold text-sm text-white">₹{px.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                           <span className={`text-[11px] font-mono font-bold ${isPos ? 'text-[#00E6A8]' : 'text-rose-500'}`}>
+                             {isPos ? '+' : ''}{chg.toFixed(2)}%
+                           </span>
+                         </div>
+                       </div>
+                     );
+                   })
+                 ) : (
+                   <div className="p-4 text-center text-xs text-gray-500">No stocks matching "{searchQuery}"</div>
+                 )}
+               </div>
+             )}
            </div>
            
            {/* Right side icons */}

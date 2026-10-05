@@ -816,7 +816,7 @@ class FinAIDatabase:
             df['volume'] = np.random.randint(1000, 100000, size=num_candles)
             
         curr_last = float(df['close'].values[-1])
-        if curr_last > 0 and abs(curr_last - target_price) > 0.5:
+        if data_source == 'local_dataset' and curr_last > 0 and abs(curr_last - target_price) > 0.5:
             scale_ratio = target_price / curr_last
             df['open'] = np.round(df['open'] * scale_ratio, 2)
             df['high'] = np.round(df['high'] * scale_ratio, 2)

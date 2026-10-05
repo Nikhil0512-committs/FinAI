@@ -116,9 +116,8 @@ async def market_streaming_worker():
             # 2. Broadcast ticks only if WebSocket clients are connected
             if ws_manager.active_connections:
                 for sym in symbols:
-                    # Use skip_yfinance=True to avoid API calls in the background loop;
-                    # real prices are fetched on-demand by /api/quote and /api/live-stocks
-                    q = await asyncio.to_thread(db.get_local_latest_quote, sym, True)
+                    # Fetch real prices for background stream to prevent overwriting frontend with synthetic data
+                    q = await asyncio.to_thread(db.get_local_latest_quote, sym, False)
                     tick_msg = {
                         "type": "TICK",
                         "symbol": sym,

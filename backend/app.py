@@ -97,11 +97,14 @@ ws_manager = WebSocketManager()
 
 # ─── Background Market Streaming & Settlement Task ───
 async def market_streaming_worker():
-    """High-frequency background stream pushing ticks and SL/TP alerts through Redis and WebSockets."""
+    """Resource-efficient background stream for SL/TP and periodic ticks.
+    Optimized for Render free-tier: runs every 30s instead of 3s,
+    uses cached/synthetic quotes to avoid hammering yfinance."""
     symbols = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'ADANIENT', 'SBIN', 'TATAMOTORS', 'ITC', 'LT']
+    tick_counter = 0
     while True:
         try:
-            # 1. Process SL/TP triggers
+            # 1. Process SL/TP triggers (always — critical for trade integrity)
             triggered = await asyncio.to_thread(db.process_sl_tp_triggers)
             if triggered:
                 await ws_manager.broadcast({
@@ -110,24 +113,28 @@ async def market_streaming_worker():
                 })
                 await kafka_engine.publish_event(KafkaTopic.TRADES_SETTLED, {"triggered": triggered})
 
-            # 2. Broadcast active ticks across Redis & WebSockets
-            for sym in symbols:
-                q = await asyncio.to_thread(db.get_local_latest_quote, sym)
-                tick_msg = {
-                    "type": "TICK",
-                    "symbol": sym,
-                    "price": q.get('price'),
-                    "change_pct": q.get('change_pct', 0.0),
-                    "timestamp": asyncio.get_event_loop().time()
-                }
-                await redis_engine.publish_market_tick(sym, tick_msg)
-                await ws_manager.broadcast(tick_msg)
+            # 2. Broadcast ticks only if WebSocket clients are connected
+            if ws_manager.active_connections:
+                for sym in symbols:
+                    # Use skip_yfinance=True to avoid API calls in the background loop;
+                    # real prices are fetched on-demand by /api/quote and /api/live-stocks
+                    q = await asyncio.to_thread(db.get_local_latest_quote, sym, True)
+                    tick_msg = {
+                        "type": "TICK",
+                        "symbol": sym,
+                        "price": q.get('price'),
+                        "change_pct": q.get('change_pct', 0.0),
+                        "timestamp": asyncio.get_event_loop().time()
+                    }
+                    await redis_engine.publish_market_tick(sym, tick_msg)
+                    await ws_manager.broadcast(tick_msg)
 
-            await asyncio.sleep(3.0)
+            tick_counter += 1
+            await asyncio.sleep(30.0)  # 30s interval to stay within Render free-tier limits
         except asyncio.CancelledError:
             break
         except Exception as e:
-            await asyncio.sleep(3.0)
+            await asyncio.sleep(30.0)
 
 _streaming_task = None
 

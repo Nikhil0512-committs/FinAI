@@ -20,7 +20,7 @@ const SidebarLink = ({ to, icon: Icon, label }) => {
 
 export const AppLayout = ({ children }) => {
   const { user, logout } = useAuth();
-  const { trades, marketIndices, stockList, setSelectedStock } = useTrading();
+  const { trades, marketIndices, stockList, setSelectedStock, portfolio } = useTrading();
   const navigate = useNavigate();
   
   const [isDarkMode, setIsDarkMode] = useState(true);
@@ -163,6 +163,12 @@ export const AppLayout = ({ children }) => {
                </div>
                
               <div className="flex items-center gap-5 relative">
+                  <div className="flex flex-col border-r pr-5 mr-1 border-gray-200 dark:border-[#1C212D]">
+                     <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider mb-1 text-right">Balance</span>
+                     <span className="text-sm font-bold text-[#00E6A8] text-right">
+                        ₹{portfolio?.total_value ? Number(portfolio.total_value).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '1,00,000.00'}
+                     </span>
+                  </div>
                   <button onClick={() => setIsDarkMode(!isDarkMode)} className="hover:text-gray-400 transition-colors">
                     {isDarkMode ? <Sun className="w-5 h-5 text-gray-500" /> : <Moon className="w-5 h-5 text-gray-500" />}
                   </button>

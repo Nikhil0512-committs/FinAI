@@ -84,7 +84,7 @@ class WebSocketManager:
         if not self.active_connections:
             return
         dead = []
-        msg_str = json.dumps(message)
+        msg_str = json.dumps(message, default=str)
         for ws in self.active_connections:
             try:
                 await ws.send_text(msg_str)
@@ -196,7 +196,7 @@ async def websocket_stream(websocket: WebSocket):
             "type": "CONNECTED",
             "message": "FinAI High-Frequency Real-Time WebSocket Connected",
             "timestamp": asyncio.get_event_loop().time()
-        }))
+        }, default=str))
         while True:
             data = await websocket.receive_text()
             try:
@@ -224,7 +224,7 @@ async def websocket_stream(websocket: WebSocket):
                             "volume": q.get('volume'),
                             "range": q.get('range'),
                             "timestamp": asyncio.get_event_loop().time()
-                        }))
+                        }, default=str))
             except Exception:
                 pass
     except WebSocketDisconnect:

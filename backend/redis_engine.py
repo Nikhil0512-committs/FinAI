@@ -136,7 +136,7 @@ class RedisEngine:
         if not self._initialized:
             await self.init()
 
-        val_str = json.dumps(value) if isinstance(value, (dict, list)) else str(value)
+        val_str = json.dumps(value, default=str) if isinstance(value, (dict, list)) else str(value)
 
         if self.is_native_redis and self.redis_client:
             try:
@@ -156,7 +156,7 @@ class RedisEngine:
             return val
 
     async def set_json(self, key: str, data: Any, ex: Optional[int] = None) -> bool:
-        return await self.set(key, json.dumps(data), ex=ex)
+        return await self.set(key, json.dumps(data, default=str), ex=ex)
 
     async def delete(self, key: str) -> bool:
         if not self._initialized:
@@ -197,7 +197,7 @@ class RedisEngine:
     async def publish_market_tick(self, symbol: str, tick_data: Dict[str, Any]):
         """Publishes live tick to Redis channel for instant WebSocket distribution."""
         channel = f"finai:channel:ticks:{symbol.upper()}"
-        msg = json.dumps(tick_data)
+        msg = json.dumps(tick_data, default=str)
         
         # Also store in cache
         await self.set_live_quote(symbol, tick_data, ttl_seconds=3)

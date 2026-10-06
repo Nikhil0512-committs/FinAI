@@ -52,21 +52,9 @@ class FinAIDatabase:
         self.pool = ThreadedConnectionPool(1, 40, os.environ.get('DATABASE_URL'), sslmode='require')
         self._db_lock = DBLockProxy(self.pool)
         
-    @property
-    def sqlite_conn(self):
-        if not hasattr(self._db_lock.local, 'conn'):
-            self.local_temp_conn = self.pool.getconn()
-            self.local_temp_conn.autocommit = True
-            return self.local_temp_conn
-        return self._db_lock.local.conn
-
-    def _cleanup_temp_conn(self):
-        if hasattr(self, 'local_temp_conn'):
-            self.pool.putconn(self.local_temp_conn)
-            del self.local_temp_conn
-        
         self._init_sqlite_tables()
         self._cleanup_temp_conn()
+        
         self._zip_candle_cache = {}
         self._zip_namelist_set = None
         
@@ -82,6 +70,19 @@ class FinAIDatabase:
                 
         self.available_stocks = self._discover_available_stocks()
         print(f"[FinAI Database] Initialized successfully with {len(self.available_stocks)} Indian stocks.")
+        
+    @property
+    def sqlite_conn(self):
+        if not hasattr(self._db_lock.local, 'conn'):
+            self.local_temp_conn = self.pool.getconn()
+            self.local_temp_conn.autocommit = True
+            return self.local_temp_conn
+        return self._db_lock.local.conn
+
+    def _cleanup_temp_conn(self):
+        if hasattr(self, 'local_temp_conn'):
+            self.pool.putconn(self.local_temp_conn)
+            del self.local_temp_conn
 
     def _cursor(self):
         """Thread-safe cursor context manager. Acquires _db_lock before creating a cursor."""
@@ -858,8 +859,8 @@ class FinAIDatabase:
         missing_from_apis = [s for s in symbols if s not in quote_map]
         if missing_from_apis:
             # RENDER MEMORY FIX: yf.download on 200+ symbols crashes Render (512MB RAM).
-            # Limit yfinance batch to the first 50 active symbols. The rest use static fallbacks.
-            yf_batch_limit = 50 if IS_RENDER else 250
+            # Limit yfinance batch to 0 to prevent timeout/Invalid Crumb issues, fallback to curated base data
+            yf_batch_limit = 0
             symbols_to_fetch = missing_from_apis[:yf_batch_limit]
             
             yf_quotes = yfinance_engine.get_live_quotes(symbols_to_fetch)

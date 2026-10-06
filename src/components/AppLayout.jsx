@@ -50,7 +50,7 @@ export const AppLayout = ({ children }) => {
       <div className={`w-64 border-r flex flex-col justify-between py-6 shrink-0 z-20 print-hidden ${isDarkMode ? 'border-[#1C212D] bg-[#0B0E14]' : 'border-gray-200 bg-white'}`}>
         <div>
           <div className="px-6 mb-8 flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-white tracking-tight flex items-center">
+            <h1 className={`text-2xl font-bold tracking-tight flex items-center ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
               FinAI 
               <span className="w-2 h-2 rounded-full bg-[#00E6A8] ml-1 shadow-[0_0_8px_rgba(0,230,168,0.6)]"></span>
             </h1>
@@ -116,11 +116,11 @@ export const AppLayout = ({ children }) => {
                          className={`px-4 py-3 flex items-center justify-between cursor-pointer border-b transition-colors ${isDarkMode ? 'border-[#1C212D]/60 hover:bg-[#1C212D]' : 'border-gray-100 hover:bg-gray-50'}`}
                        >
                          <div className="flex flex-col">
-                           <span className="font-mono font-bold text-sm text-white">{stock.symbol}</span>
+                           <span className={`font-mono font-bold text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{stock.symbol}</span>
                            <span className="text-[11px] text-gray-500 truncate max-w-[200px]">{stock.name || 'NSE Equity'}</span>
                          </div>
                          <div className="flex flex-col items-end">
-                           <span className="font-mono font-semibold text-sm text-white">₹{px.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                           <span className={`font-mono font-semibold text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>₹{px.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                            <span className={`text-[11px] font-mono font-bold ${isPos ? 'text-[#00E6A8]' : 'text-rose-500'}`}>
                              {isPos ? '+' : ''}{chg.toFixed(2)}%
                            </span>
@@ -225,7 +225,7 @@ export const AppLayout = ({ children }) => {
         </header>
 
         {/* PAGE CONTENT */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar relative print:overflow-visible">
+        <div className={`flex-1 overflow-y-auto custom-scrollbar relative print:overflow-visible ${!isDarkMode ? 'light-mode-invert' : ''}`}>
             {children}
         </div>
       </div>

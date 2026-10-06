@@ -62,6 +62,16 @@ body {
   animation: fadeIn 0.25s ease-out forwards;
 }
 
+.light-mode-invert {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+.light-mode-invert img,
+.light-mode-invert video,
+.light-mode-invert canvas {
+  filter: invert(1) hue-rotate(180deg);
+}
+
 @keyframes pulseGlow {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }

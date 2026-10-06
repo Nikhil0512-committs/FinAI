@@ -28,6 +28,19 @@ export const BehavioralTwin = () => {
 
   const API_BASE = import.meta.env.VITE_API_URL || "";
 
+  
+  const handleTakeRule = async () => {
+    try {
+      const activeUser = userId || 'usr_guest';
+      const res = await fetch(`${API_BASE}/api/behavioral-twin/rules`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: activeUser, rule_type: simplifiedData.top_leak, threshold: parseFloat(ruleThreshold) })
+      });
+      if (res.ok) setRuleAccepted(true);
+    } catch (e) { console.error(e); }
+  };
+
   const fetchProjection = async () => {
     setLoading(true);
     try {
@@ -38,6 +51,10 @@ export const BehavioralTwin = () => {
         if (data.success) {
           setProjectionData(data.projection);
           setSimplifiedData(data.simplified);
+          if (data.simplified?.rule_accepted) {
+            setRuleAccepted(true);
+            setRuleThreshold(data.simplified.accepted_threshold);
+          }
         } else {
           setProjectionData(null);
           setSimplifiedData(null);
@@ -214,7 +231,7 @@ export const BehavioralTwin = () => {
                 </div>
               ) : (
                 <button 
-                  onClick={() => setRuleAccepted(true)}
+                  onClick={handleTakeRule}
                   className="whitespace-nowrap px-6 py-2 bg-white text-black text-xs font-mono font-bold uppercase tracking-widest hover:bg-cyan-400 transition-colors"
                 >
                   Take This Rule

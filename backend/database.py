@@ -1826,3 +1826,26 @@ class FinAIDatabase:
             cursor.close()
 
 db = FinAIDatabase()
+
+    def get_accepted_rules(self, user_id):
+        try:
+            with psycopg2.connect(self.db_url, sslmode='require') as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute("SELECT rule_type, threshold FROM accepted_rules WHERE user_id = %s AND active = TRUE", (user_id,))
+                    rows = cur.fetchall()
+                    return {row['rule_type']: float(row['threshold']) for row in rows}
+        except Exception as e:
+            print(f"Error fetching rules: {e}")
+            return {}
+
+    def save_accepted_rule(self, user_id, rule_type, threshold):
+        try:
+            with psycopg2.connect(self.db_url, sslmode='require') as conn:
+                with conn.cursor() as cur:
+                    cur.execute("UPDATE accepted_rules SET active = FALSE WHERE user_id = %s AND rule_type = %s", (user_id, rule_type))
+                    cur.execute("INSERT INTO accepted_rules (user_id, rule_type, threshold) VALUES (%s, %s, %s)", (user_id, rule_type, threshold))
+                conn.commit()
+            return True
+        except Exception as e:
+            print(f"Error saving rule: {e}")
+            return False

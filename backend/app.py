@@ -539,7 +539,15 @@ def get_tilt_score(user_id: str = 'default_user', current_trade_value: float = 1
 @app.get("/api/behavioral-twin")
 def get_behavioral_twin(user_id: str = 'default_user'):
     trades = db.get_trade_history(user_id)
-    simplified_data = behavioral_engine.analyze_simplified_twin(trades)
+    active_rules = db.get_accepted_rules(user_id)
+    simplified_data = behavioral_engine.analyze_simplified_twin(trades, active_rules=active_rules)
+    if simplified_data and simplified_data.get('status') == 'SUCCESS':
+        # Check if the top leak rule is already accepted
+        top_leak = simplified_data.get('top_leak')
+        simplified_data['rule_accepted'] = top_leak in active_rules
+        if top_leak in active_rules:
+            simplified_data['accepted_threshold'] = active_rules[top_leak]
+
     legacy_projection = behavioral_engine.generate_behavioral_twin_projection(trades)
     
     if not simplified_data or simplified_data.get('status') == 'EMPTY_STATE':
@@ -922,3 +930,13 @@ def get_trade_post_mortem(req: PostMortemRequest):
 
 if __name__ == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+
+class RulePayload(BaseModel):
+    user_id: str
+    rule_type: str
+    threshold: float
+
+@app.post("/api/behavioral-twin/rules")
+def save_behavioral_rule(payload: RulePayload):
+    success = db.save_accepted_rule(payload.user_id, payload.rule_type, payload.threshold)
+    return {"success": success}

@@ -121,7 +121,15 @@ async def market_streaming_worker():
                 quotes = await asyncio.to_thread(yfinance_engine.get_live_quotes, active_symbols)
                 quote_map = {q['symbol']: q for q in quotes if q.get('price')}
                 for sym in active_symbols:
-                    q = quote_map.get(sym) or await asyncio.to_thread(db.get_local_latest_quote, sym, False)
+                    q = quote_map.get(sym)
+                    if not q:
+                        cached_q = await redis_engine.get_live_quote(sym)
+                        if cached_q and cached_q.get('price'):
+                            q = cached_q
+                        else:
+                            q = await asyncio.to_thread(db.get_local_latest_quote, sym, False)
+                            if q and q.get('price'):
+                                await redis_engine.set_live_quote(sym, q, ttl_seconds=120)
                     tick_msg = {
                         "type": "TICK",
                         "symbol": sym,

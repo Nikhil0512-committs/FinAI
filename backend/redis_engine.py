@@ -177,7 +177,7 @@ class RedisEngine:
         key = f"finai:quote:{symbol.upper()}"
         return await self.get_json(key)
 
-    async def set_live_quote(self, symbol: str, quote: Dict[str, Any], ttl_seconds: int = 3):
+    async def set_live_quote(self, symbol: str, quote: Dict[str, Any], ttl_seconds: int = 120):
         """Caches live stock quote with short TTL."""
         key = f"finai:quote:{symbol.upper()}"
         await self.set_json(key, quote, ex=ttl_seconds)

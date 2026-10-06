@@ -3,14 +3,16 @@ import { motion } from 'framer-motion';
 import { 
   ResponsiveContainer, 
   AreaChart, 
-  Area, 
+  Area,
+  LineChart,
+  Line,
   XAxis, 
   YAxis, 
   Tooltip, 
   CartesianGrid,
-  Legend
+  ReferenceDot
 } from 'recharts';
-import { TrendingUp, TrendingDown, Activity, AlertCircle, RefreshCw } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, AlertCircle, RefreshCw, ShieldCheck, Target, CheckCircle2 } from 'lucide-react';
 import { useTrading } from '../context/TradingContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -18,7 +20,11 @@ export const BehavioralTwin = () => {
   const { trades } = useTrading();
   const { userId } = useAuth();
   const [projectionData, setProjectionData] = useState(null);
+  const [simplifiedData, setSimplifiedData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showLegacy, setShowLegacy] = useState(false);
+  const [ruleAccepted, setRuleAccepted] = useState(false);
+  const [ruleThreshold, setRuleThreshold] = useState(15);
 
   const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -31,8 +37,10 @@ export const BehavioralTwin = () => {
         const data = await res.json();
         if (data.success) {
           setProjectionData(data.projection);
+          setSimplifiedData(data.simplified);
         } else {
           setProjectionData(null);
+          setSimplifiedData(null);
         }
       }
     } catch (e) {
@@ -50,45 +58,115 @@ export const BehavioralTwin = () => {
     return (
       <div className="flex flex-col items-center justify-center h-[400px] border border-gray-900 bg-[#020308]">
         <RefreshCw className="w-6 h-6 text-cyan-500 animate-spin mb-4" />
-        <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Running Monte Carlo Simulations...</div>
+        <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Running Behavioral Diagnostics...</div>
       </div>
     );
   }
 
-  if (!projectionData || !projectionData.projection_data || projectionData.projection_data.length === 0) {
+  // --- EMPTY STATE ---
+  if (!simplifiedData || simplifiedData.status === 'EMPTY_STATE') {
     return (
       <div className="flex flex-col items-center justify-center h-[400px] border border-gray-900 bg-[#020308] p-8 text-center">
-        <AlertCircle className="w-8 h-8 text-gray-700 mb-4" />
-        <div className="text-sm font-mono text-gray-400 mb-2">Insufficient History for Behavioral Twin</div>
-        <div className="text-[10px] font-mono text-gray-600 uppercase tracking-widest max-w-md">
-          Execute at least 6 paper trades with a mix of wins and losses to generate your 30-day behavioral projection.
+        <ShieldCheck className="w-10 h-10 text-emerald-500 mb-4 opacity-80" />
+        <div className="text-sm font-mono text-white tracking-tight uppercase mb-2">No Costly Psychological Leaks Detected</div>
+        <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest max-w-md">
+          Your recent sample lacks statistically significant tilt events. Keep adhering to your current discipline rules.
+        </div>
+        {projectionData && (
+           <button 
+             onClick={() => setShowLegacy(true)}
+             className="mt-6 text-[10px] text-gray-400 underline uppercase tracking-widest hover:text-white"
+           >
+             View 30-Day Projection
+           </button>
+        )}
+      </div>
+    );
+  }
+
+  // --- LEGACY PROJECTION VIEW ---
+  if (showLegacy && projectionData) {
+    const { projection_data, final_difference, metrics } = projectionData;
+    const savings = Math.abs(final_difference);
+    return (
+      <div className="border border-gray-900 bg-[#020308] flex flex-col h-full relative">
+        <button 
+          onClick={() => setShowLegacy(false)}
+          className="absolute top-4 right-4 z-20 text-[10px] bg-gray-900 text-white px-3 py-1 uppercase tracking-widest hover:bg-gray-800 transition-colors"
+        >
+          Back to Trade View
+        </button>
+        
+        {/* Render Legacy Layout (Condensed for brevity) */}
+        <div className="p-8 border-b border-gray-900 flex flex-col md:flex-row items-start justify-between gap-6">
+          <div>
+            <div className="text-[10px] font-mono text-cyan-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+              <Activity className="w-3.5 h-3.5" /> Legacy Monte Carlo
+            </div>
+            <h2 className="text-2xl font-light font-mono text-white tracking-tight uppercase">30-Day Projection</h2>
+          </div>
+          <div className="text-left md:text-right">
+            <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-1">Projected Gap</div>
+            <div className="text-3xl font-light font-mono text-cyan-400">₹{savings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div>
+          </div>
+        </div>
+        <div className="flex-1 p-6 relative min-h-[300px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={projection_data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="1 4" stroke="#0f172a" vertical={false} />
+              <XAxis dataKey="day" stroke="#334155" tick={{ fontSize: 9, fontFamily: 'monospace' }} />
+              <YAxis stroke="#334155" tick={{ fontSize: 9, fontFamily: 'monospace' }} tickFormatter={(val) => `₹${val}`} />
+              <Area type="monotone" dataKey="current_you" stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.1} />
+              <Area type="monotone" dataKey="disciplined_you" stroke="#10b981" fill="#10b981" fillOpacity={0.1} />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
       </div>
     );
   }
 
-  const { projection_data, final_difference, current_final, disciplined_final, metrics } = projectionData;
-  const savings = Math.abs(final_difference);
-  const isPositiveSavings = final_difference > 0;
+  // --- SIMPLIFIED INTRADAY VIEW ---
+  
+  // Calculate Chart Data
+  let cumReal = 0;
+  let cumCounter = 0;
+  const chartData = (simplifiedData.round_trips || []).map((rt, index) => {
+    cumReal += rt.net_pnl;
+    if (!rt.is_tilt) {
+      cumCounter += rt.net_pnl;
+    }
+    return {
+      index: index + 1,
+      real: cumReal,
+      counter: cumCounter,
+      is_tilt: rt.is_tilt,
+      pnl: rt.net_pnl
+    };
+  });
 
-  const CustomTooltip = ({ active, payload, label }) => {
+  const topLeak = simplifiedData.top_leak === 'REVENGE' ? 'Revenge Trading' : 'Size Escalation';
+  const confidenceColor = simplifiedData.confidence === 'HIGH' ? 'text-emerald-400' : (simplifiedData.confidence === 'MEDIUM' ? 'text-amber-400' : 'text-gray-400');
+  
+  const CustomChartTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
+      const data = payload[0].payload;
       return (
-        <div className="bg-[#050812] border border-gray-800 p-3 shadow-2xl min-w-[180px]">
-          <p className="text-[10px] text-gray-500 font-mono mb-2 uppercase tracking-widest">{label}</p>
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between gap-4 text-[11px] font-mono">
-              <span className="text-rose-400 font-medium">You Now</span>
-              <span className="text-white font-bold tracking-tight">₹{payload[0]?.value?.toFixed(0)}</span>
+        <div className="bg-[#050812] border border-gray-800 p-3 shadow-2xl min-w-[150px]">
+          <p className="text-[10px] text-gray-500 font-mono mb-2 uppercase tracking-widest">Trade {data.index}</p>
+          <div className="space-y-1">
+            <div className="flex justify-between gap-4 text-[11px] font-mono">
+              <span className="text-rose-400">Real PnL</span>
+              <span className="text-white">₹{data.real.toFixed(0)}</span>
             </div>
-            <div className="flex items-center justify-between gap-4 text-[11px] font-mono">
-              <span className="text-emerald-400 font-medium">Disciplined You</span>
-              <span className="text-white font-bold tracking-tight">₹{payload[1]?.value?.toFixed(0)}</span>
+            <div className="flex justify-between gap-4 text-[11px] font-mono">
+              <span className="text-gray-500">Counterfactual</span>
+              <span className="text-gray-300">₹{data.counter.toFixed(0)}</span>
             </div>
-            <div className="pt-1.5 mt-1.5 border-t border-gray-800 flex items-center justify-between gap-4 text-[11px] font-mono">
-              <span className="text-gray-500">Difference</span>
-              <span className="text-cyan-400 font-bold tracking-tight">₹{Math.abs(payload[1]?.value - payload[0]?.value).toFixed(0)}</span>
-            </div>
+            {data.is_tilt && (
+              <div className="pt-2 mt-2 border-t border-gray-800 text-[10px] text-rose-500 font-bold uppercase tracking-widest flex items-center gap-1">
+                <AlertCircle className="w-3 h-3"/> Tilt Event Identified
+              </div>
+            )}
           </div>
         </div>
       );
@@ -97,96 +175,119 @@ export const BehavioralTwin = () => {
   };
 
   return (
-    <div className="border border-gray-900 bg-[#020308] flex flex-col h-full">
-      <div className="p-8 border-b border-gray-900 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div>
-          <div className="text-[10px] font-mono text-cyan-500 uppercase tracking-widest mb-2 flex items-center gap-2">
-            <Activity className="w-3.5 h-3.5" /> 30-Day Behavioral Projection
-          </div>
-          <h2 className="text-3xl font-light font-mono text-white tracking-tight uppercase">
-            "Future You" Simulator
-          </h2>
-          <p className="text-[11px] font-sans text-gray-400 mt-2 max-w-xl">
-            A Monte Carlo resample of your own past trades. Shows the 30-day trajectory of continuing your current habits vs. following your own discipline rules. Not a market prediction.
-          </p>
-        </div>
-        
-        <div className="text-left md:text-right">
-          <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-1">Cost of Emotions (30 Days)</div>
-          <div className="text-4xl font-light font-mono tabular-nums tracking-tighter text-cyan-400">
-            ₹{savings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+    <div className="border border-gray-900 bg-[#020308] flex flex-col h-full overflow-hidden">
+      
+      {/* 1. HERO VERDICT */}
+      <div className="p-8 border-b border-gray-900 bg-gradient-to-br from-rose-950/20 to-transparent">
+        <div className="flex flex-col lg:flex-row justify-between items-start gap-8">
+          <div className="flex-1">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="text-[10px] font-mono text-rose-500 uppercase tracking-widest flex items-center gap-2 border border-rose-900/50 bg-rose-950/30 px-2 py-1">
+                <Target className="w-3.5 h-3.5" /> Primary Leak Detected
+              </div>
+              <div className="text-[10px] font-mono text-gray-500 uppercase">
+                Based on {simplifiedData.events} events
+              </div>
+              <div className={`text-[10px] font-mono uppercase ${confidenceColor}`}>
+                Conf: {simplifiedData.confidence}
+              </div>
+            </div>
+            
+            <h2 className="text-2xl md:text-3xl font-light font-mono text-white tracking-tight leading-snug">
+              {topLeak} cost you <span className="text-rose-400 font-medium">₹{simplifiedData.net_tilt_cost.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span> recently.
+            </h2>
+            
+            <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-[#0a0f1a] p-4 border border-gray-800 rounded-sm">
+              <div className="flex-1">
+                <div className="text-[10px] text-gray-500 font-mono uppercase tracking-widest mb-1">Generated Rule</div>
+                <div className="text-sm text-cyan-400 font-mono">
+                  {topLeak === 'Revenge Trading' ? (
+                    <>No re-entry within <input type="number" className="bg-transparent border-b border-cyan-700 w-12 text-center focus:outline-none" value={ruleThreshold} onChange={(e)=>setRuleThreshold(e.target.value)} /> minutes of a loss.</>
+                  ) : (
+                    <>Do not size up above {ruleThreshold}x your median after a loss.</>
+                  )}
+                </div>
+              </div>
+              {ruleAccepted ? (
+                <div className="flex items-center gap-2 text-emerald-400 text-xs font-mono uppercase tracking-widest border border-emerald-900/50 bg-emerald-950/30 px-4 py-2">
+                  <CheckCircle2 className="w-4 h-4"/> Rule Accepted
+                </div>
+              ) : (
+                <button 
+                  onClick={() => setRuleAccepted(true)}
+                  className="whitespace-nowrap px-6 py-2 bg-white text-black text-xs font-mono font-bold uppercase tracking-widest hover:bg-cyan-400 transition-colors"
+                >
+                  Take This Rule
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 p-6 relative">
-        <div className="absolute top-6 right-8 z-10 flex gap-6 text-[9px] font-mono uppercase tracking-widest">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]" /> You Now
+      {/* 2. OVERLAY CHART */}
+      <div className="flex-1 p-6 relative flex flex-col">
+        <div className="flex justify-between items-center mb-6 z-10">
+          <div className="flex gap-6 text-[9px] font-mono uppercase tracking-widest">
+            <div className="flex items-center gap-2 text-rose-400">
+              <span className="w-3 h-[2px] bg-rose-500" /> Real Equity
+            </div>
+            <div className="flex items-center gap-2 text-gray-500">
+              <span className="w-3 h-[2px] border-b border-dashed border-gray-500" /> Counterfactual
+            </div>
+            <div className="flex items-center gap-2 text-rose-500">
+              <span className="w-2 h-2 rounded-full bg-rose-600 shadow-[0_0_8px_rgba(225,29,72,0.6)]" /> Tilt Trade
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" /> Disciplined You
-          </div>
+          <button 
+            onClick={() => setShowLegacy(true)}
+            className="text-[9px] text-cyan-500 hover:text-cyan-400 underline uppercase tracking-widest font-mono"
+          >
+            See 30-Day Projection
+          </button>
         </div>
         
-        <div className="w-full h-[350px]">
+        <div className="flex-1 min-h-[250px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={projection_data} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
-              <defs>
-                <linearGradient id="currentGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.2} />
-                  <stop offset="100%" stopColor="#f43f5e" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="disciplinedGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#10b981" stopOpacity={0.2} />
-                  <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
-                </linearGradient>
-              </defs>
+            <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 10 }}>
               <CartesianGrid strokeDasharray="1 4" stroke="#0f172a" vertical={false} />
-              <XAxis dataKey="day" stroke="#334155" tick={{ fontSize: 9, fontFamily: 'monospace' }} tickLine={false} axisLine={false} dy={10} />
+              <XAxis dataKey="index" stroke="#334155" tick={{ fontSize: 9, fontFamily: 'monospace' }} tickLine={false} axisLine={false} dy={10} minTickGap={20} />
               <YAxis stroke="#334155" tick={{ fontSize: 9, fontFamily: 'monospace' }} tickLine={false} axisLine={false} dx={-10} tickFormatter={(val) => `₹${val}`} />
               
-              <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#475569', strokeWidth: 1, strokeDasharray: '3 3' }} />
+              <Tooltip content={<CustomChartTooltip />} cursor={{ stroke: '#475569', strokeWidth: 1, strokeDasharray: '3 3' }} />
               
-              <Area 
-                type="monotone" 
-                dataKey="current_you" 
+              <Line 
+                type="stepAfter" 
+                dataKey="counter" 
+                stroke="#64748b" 
+                strokeWidth={1.5} 
+                strokeDasharray="4 4"
+                dot={false}
+                isAnimationActive={false}
+              />
+              
+              <Line 
+                type="stepAfter" 
+                dataKey="real" 
                 stroke="#f43f5e" 
                 strokeWidth={2} 
-                fill="url(#currentGradient)" 
-                name="You Now" 
+                dot={(props) => {
+                  const { cx, cy, payload } = props;
+                  if (payload.is_tilt) {
+                    return <circle cx={cx} cy={cy} r={4} fill="#e11d48" stroke="#020308" strokeWidth={2} key={`dot-${payload.index}`} />;
+                  }
+                  return <React.Fragment key={`empty-${payload.index}`} />;
+                }}
               />
-              <Area 
-                type="monotone" 
-                dataKey="disciplined_you" 
-                stroke="#10b981" 
-                strokeWidth={2} 
-                fill="url(#disciplinedGradient)" 
-                name="Disciplined You" 
-              />
-            </AreaChart>
+            </LineChart>
           </ResponsiveContainer>
         </div>
-      </div>
-
-      <div className="bg-[#050812] border-t border-gray-900 grid grid-cols-1 md:grid-cols-2">
-        <div className="p-6 border-b md:border-b-0 md:border-r border-gray-900">
-          <div className="flex items-center gap-3 mb-2">
-            <TrendingDown className="w-4 h-4 text-rose-400" />
-            <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Habit: Revenge Trading</span>
-          </div>
-          <div className="text-2xl font-mono text-white tracking-tight">{metrics.revenge_freq_pct}%</div>
-          <div className="text-[9px] font-sans text-gray-400 mt-1">of your losses trigger an immediate re-entry attempt.</div>
-        </div>
-        <div className="p-6">
-          <div className="flex items-center gap-3 mb-2">
-            <TrendingUp className="w-4 h-4 text-amber-400" />
-            <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Habit: Size Escalation</span>
-          </div>
-          <div className="text-2xl font-mono text-white tracking-tight">{metrics.escalation_freq_pct}%</div>
-          <div className="text-[9px] font-sans text-gray-400 mt-1">of your trades are oversized to recover from a previous loss.</div>
+        
+        <div className="mt-2 text-center text-[9px] text-gray-600 font-mono italic">
+          * Removing past trades mathematically alters subsequent decisions; this counterfactual is an estimate.
         </div>
       </div>
+      
     </div>
   );
 };

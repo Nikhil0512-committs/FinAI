@@ -94,7 +94,7 @@ export const BehavioralTwin = () => {
         </button>
         
         {/* Render Legacy Layout (Condensed for brevity) */}
-        <div className="p-8 border-b border-gray-900 flex flex-col md:flex-row items-start justify-between gap-6">
+        <div className="p-4 sm:p-6 md:p-4 sm:p-6 md:p-8 border-b border-gray-900 flex flex-col md:flex-row items-start justify-between gap-6">
           <div>
             <div className="text-[10px] font-mono text-cyan-500 uppercase tracking-widest mb-2 flex items-center gap-2">
               <Activity className="w-3.5 h-3.5" /> Legacy Monte Carlo
@@ -106,7 +106,7 @@ export const BehavioralTwin = () => {
             <div className="text-3xl font-light font-mono text-cyan-400">₹{savings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div>
           </div>
         </div>
-        <div className="flex-1 p-6 relative min-h-[300px]">
+        <div className="flex-1 p-4 sm:p-6 relative min-h-[300px]">
           <div className="w-full h-[300px]"><ResponsiveContainer width="100%" height="100%">
             <AreaChart data={projection_data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="1 4" stroke="#0f172a" vertical={false} />
@@ -124,7 +124,7 @@ export const BehavioralTwin = () => {
   // --- EMPTY STATE ---
   if (!simplifiedData || simplifiedData.status === 'EMPTY_STATE') {
     return (
-      <div className="flex flex-col items-center justify-center h-[400px] border border-gray-900 bg-[#020308] p-8 text-center">
+      <div className="flex flex-col items-center justify-center h-[400px] border border-gray-900 bg-[#020308] p-4 sm:p-6 md:p-8 text-center">
         <ShieldCheck className="w-10 h-10 text-emerald-500 mb-4 opacity-80" />
         <div className="text-sm font-mono text-white tracking-tight uppercase mb-2">No Costly Psychological Leaks Detected</div>
         <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest max-w-md">
@@ -195,10 +195,10 @@ export const BehavioralTwin = () => {
     <div className="border border-gray-900 bg-[#020308] flex flex-col h-full overflow-hidden">
       
       {/* 1. HERO VERDICT */}
-      <div className="p-8 border-b border-gray-900 bg-gradient-to-br from-rose-950/20 to-transparent">
+      <div className="p-4 sm:p-6 md:p-4 sm:p-6 md:p-8 border-b border-gray-900 bg-gradient-to-br from-rose-950/20 to-transparent">
         <div className="flex flex-col lg:flex-row justify-between items-start gap-8">
           <div className="flex-1">
-            <div className="flex items-center gap-4 mb-4">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-4">
               <div className="text-[10px] font-mono text-rose-500 uppercase tracking-widest flex items-center gap-2 border border-rose-900/50 bg-rose-950/30 px-2 py-1">
                 <Target className="w-3.5 h-3.5" /> Primary Leak Detected
               </div>
@@ -214,7 +214,7 @@ export const BehavioralTwin = () => {
               {topLeak} cost you <span className="text-rose-400 font-medium">₹{simplifiedData.net_tilt_cost.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span> recently.
             </h2>
             
-            <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-[#0a0f1a] p-4 border border-gray-800 rounded-sm">
+            <div className="mt-6 flex flex-col md:flex-row items-start md:items-center gap-4 bg-[#0a0f1a] p-4 border border-gray-800 rounded-sm">
               <div className="flex-1">
                 <div className="text-[10px] text-gray-500 font-mono uppercase tracking-widest mb-1">Generated Rule</div>
                 <div className="text-sm text-cyan-400 font-mono">
@@ -243,9 +243,9 @@ export const BehavioralTwin = () => {
       </div>
 
       {/* 2. OVERLAY CHART */}
-      <div className="flex-1 p-6 relative flex flex-col">
-        <div className="flex justify-between items-center mb-6 z-10">
-          <div className="flex gap-6 text-[9px] font-mono uppercase tracking-widest">
+      <div className="flex-1 p-4 sm:p-6 relative flex flex-col">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-6 z-10">
+          <div className="flex flex-wrap gap-3 sm:gap-6 text-[9px] font-mono uppercase tracking-widest">
             <div className="flex items-center gap-2 text-rose-400">
               <span className="w-3 h-[2px] bg-rose-500" /> Real Equity
             </div>

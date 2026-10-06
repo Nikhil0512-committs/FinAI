@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTrading } from '../context/TradingContext';
 import { 
   Search, Bell, Sun, Moon, LayoutDashboard, TrendingUp, 
-  BrainCircuit, BarChart3, History, Settings, ChevronDown, LogOut
+  BrainCircuit, BarChart3, History, Settings, ChevronDown, LogOut, Star
 } from 'lucide-react';
 
 const SidebarLink = ({ to, icon: Icon, label }) => {
@@ -33,7 +33,7 @@ export const AppLayout = ({ children }) => {
     ? (stockList || []).filter(s => 
         (s.symbol || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
         (s.name && s.name.toLowerCase().includes(searchQuery.toLowerCase()))
-      ).slice(0, 10)
+      )
     : [];
 
   const recentTrades = trades?.slice(0, 5) || [];
@@ -57,6 +57,7 @@ export const AppLayout = ({ children }) => {
           </div>
           <div className="flex flex-col gap-2 px-3">
             <SidebarLink to="/dashboard" icon={LayoutDashboard} label="Dashboard" />
+            <SidebarLink to="/watchlist" icon={Star} label="Watchlist" />
             <SidebarLink to="/terminal" icon={TrendingUp} label="Terminal" />
             <SidebarLink to="/intelligence" icon={BrainCircuit} label="Intelligence" />
             <SidebarLink to="/scorecard" icon={BarChart3} label="Scorecard" />

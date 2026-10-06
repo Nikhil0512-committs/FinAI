@@ -42,8 +42,9 @@ export const TradingProvider = ({ children }) => {
   const [profileUnlocked, setProfileUnlocked] = useState(false);
   const [disciplineScore, setDisciplineScore] = useState(82);
   const [trades, setTrades] = useState([]);
-  const [activeTab, setActiveTab] = useState('terminal'); // terminal | intelligence | scorecard | replay | orders
+  const [activeTab, setActiveTab] = useState('terminal'); // terminal | intelligence | scorecard | replay | orders | watchlist
   const [stockList, setStockList] = useState(DEFAULT_TOP_STOCKS);
+  const [watchlist, setWatchlist] = useState([]);
   const [candles, setCandles] = useState([]);
   const [currentQuote, setCurrentQuote] = useState({
     price: 2864.00,
@@ -114,6 +115,13 @@ export const TradingProvider = ({ children }) => {
             const prevMap = new Map((prev || []).map((s) => [s.symbol, s]));
             return data.stocks.map((stock) => {
               const old = prevMap.get(stock.symbol);
+              const isFallback = stock.source === 'static_fallback' || stock.source === 'fallback';
+              const oldHasValidPrice = old && old.price && old.source !== 'static_fallback' && old.source !== 'fallback';
+              
+              if (isFallback && oldHasValidPrice) {
+                return old;
+              }
+
               const px = stock.price !== undefined && stock.price !== null ? stock.price : old?.price;
               const chg = stock.change_pct !== undefined && stock.change_pct !== null ? stock.change_pct : old?.change_pct;
               if (px) livePriceCache.current[stock.symbol] = px;
@@ -129,7 +137,8 @@ export const TradingProvider = ({ children }) => {
                 day_low: stock.day_low || stock.low || old?.day_low || px,
                 prev_close: stock.prev_close || old?.prev_close || px,
                 volume: stock.volume || old?.volume || 0,
-                range: stock.range || old?.range
+                range: stock.range || old?.range,
+                source: stock.source || old?.source
               };
             });
           });
@@ -137,6 +146,50 @@ export const TradingProvider = ({ children }) => {
       }
     } catch (e) {
       console.warn("Base stock list fetch error:", e);
+    }
+  };
+
+  const fetchWatchlist = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/watchlist`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setWatchlist(data.watchlist || []);
+      }
+    } catch (e) {
+      console.warn("Watchlist fetch error:", e);
+    }
+  };
+
+  const toggleWatchlist = async (symbol) => {
+    if (!token) return;
+    const isWatched = watchlist.includes(symbol);
+    
+    // Optimistic UI update
+    setWatchlist(prev => 
+      isWatched ? prev.filter(s => s !== symbol) : [...prev, symbol]
+    );
+
+    try {
+      const res = await fetch(`${API_BASE}/api/watchlist${isWatched ? `/${symbol}` : ''}`, {
+        method: isWatched ? 'DELETE' : 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: isWatched ? undefined : JSON.stringify({ symbol })
+      });
+      
+      if (!res.ok) {
+        // Revert on failure
+        fetchWatchlist();
+      }
+    } catch (e) {
+      console.error("Watchlist toggle error:", e);
+      fetchWatchlist();
     }
   };
 
@@ -178,8 +231,44 @@ export const TradingProvider = ({ children }) => {
       if (res.ok) {
         const data = await res.json();
         if (data.price !== null && data.price !== undefined) {
-          const px = parseFloat(data.price);
           const symUpper = String(symbol).toUpperCase().trim();
+          
+          if (data.source === 'static_fallback' || data.source === 'fallback') {
+            setCurrentQuote(prevQuote => {
+              if (prevQuote && prevQuote.symbol === symUpper && prevQuote.source !== 'static_fallback' && prevQuote.source !== 'fallback') {
+                return prevQuote;
+              }
+              const px = parseFloat(data.price);
+              livePriceCache.current[symUpper] = px;
+              const quoteObj = {
+                price: px,
+                change_pct: data.change_pct,
+                open: data.open ? parseFloat(data.open) : px,
+                high: (data.day_high || data.high) ? parseFloat(data.day_high || data.high) : px,
+                low: (data.day_low || data.low) ? parseFloat(data.day_low || data.low) : px,
+                day_high: (data.day_high || data.high) ? parseFloat(data.day_high || data.high) : px,
+                day_low: (data.day_low || data.low) ? parseFloat(data.day_low || data.low) : px,
+                prev_close: data.prev_close ? parseFloat(data.prev_close) : px,
+                volume: data.volume || 0,
+                range: data.range || `₹${(data.low || px).toFixed(2)} - ₹${(data.high || px).toFixed(2)}`,
+                high_52w: data.high_52w,
+                low_52w: data.low_52w,
+                time: data.time,
+                symbol: symUpper,
+                source: data.source
+              };
+              setMarketDataSource(data.source || 'broker_api');
+              setMarketDataError(null);
+              setStockList((prevList) => {
+                if (!prevList || prevList.length === 0) return prevList;
+                return prevList.map(s => String(s.symbol || '').toUpperCase().trim() === symUpper ? { ...s, ...quoteObj } : s);
+              });
+              return quoteObj;
+            });
+            return;
+          }
+
+          const px = parseFloat(data.price);
           livePriceCache.current[symUpper] = px;
           const quoteObj = {
             price: px,
@@ -307,6 +396,7 @@ export const TradingProvider = ({ children }) => {
 
   useEffect(() => {
     fetchStockList();
+    fetchWatchlist();
     fetchPortfolio(userId);
     fetchTrades(userId);
     // fetchApiKeys();
@@ -839,6 +929,9 @@ export const TradingProvider = ({ children }) => {
         setActiveXaiReceipt,
         pendingTrade,
         coolingOffTimer,
+        watchlist,
+        toggleWatchlist,
+        fetchWatchlist,
         apiKeys,
         saveApiKeys,
         fetchApiKeys,

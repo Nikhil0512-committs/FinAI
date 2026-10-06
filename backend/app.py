@@ -122,13 +122,16 @@ async def market_streaming_worker():
                 quote_map = {q['symbol']: q for q in quotes if q.get('price')}
                 for sym in active_symbols:
                     q = quote_map.get(sym)
+                    if q:
+                        if q.get('source') != 'static_fallback':
+                            await redis_engine.set_live_quote(sym, q, ttl_seconds=120)
                     if not q:
                         cached_q = await redis_engine.get_live_quote(sym)
                         if cached_q and cached_q.get('price'):
                             q = cached_q
                         else:
                             q = await asyncio.to_thread(db.get_local_latest_quote, sym, False)
-                            if q and q.get('price'):
+                            if q and q.get('price') and q.get('source') != 'static_fallback':
                                 await redis_engine.set_live_quote(sym, q, ttl_seconds=120)
                     tick_msg = {
                         "type": "TICK",
@@ -273,6 +276,9 @@ class StrategyBacktestRequest(BaseModel):
 class PostMortemRequest(BaseModel):
     trade_code: str
 
+class WatchlistPayload(BaseModel):
+    symbol: str
+
 class ApiKeysPayload(BaseModel):
     gemini_api_key: Optional[str] = ''
     fyers_app_id: Optional[str] = ''
@@ -354,7 +360,8 @@ async def get_live_quote(symbol: str):
     # 3. Authentic High-Speed NSE Live Quote
     quote = db.get_local_latest_quote(sym)
     if quote:
-        await redis_engine.set_live_quote(sym, quote)
+        if quote.get('source') != 'static_fallback':
+            await redis_engine.set_live_quote(sym, quote)
         return quote
 
     return {'symbol': sym, 'price': 1500.0, 'change_pct': 0.0, 'source': 'fallback'}
@@ -599,6 +606,20 @@ def get_fundamentals(symbol: str):
 @app.get("/api/market-heatmap")
 def get_market_heatmap():
     return {"sectors": rag_engine.get_market_heatmap()}
+
+@app.get("/api/watchlist")
+def get_watchlist(user_id: str = Depends(get_current_user)):
+    return {"watchlist": db.get_user_watchlist(user_id)}
+
+@app.post("/api/watchlist")
+def add_to_watchlist(payload: WatchlistPayload, user_id: str = Depends(get_current_user)):
+    db.add_to_watchlist(user_id, payload.symbol.upper().strip())
+    return {"status": "SUCCESS"}
+
+@app.delete("/api/watchlist/{symbol}")
+def remove_from_watchlist(symbol: str, user_id: str = Depends(get_current_user)):
+    db.remove_from_watchlist(user_id, symbol.upper().strip())
+    return {"status": "SUCCESS"}
 
 @app.get("/api/keys")
 def get_keys(user_id: str = Depends(get_current_user)):

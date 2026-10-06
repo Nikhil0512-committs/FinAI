@@ -29,7 +29,9 @@ export const TerminalPage = () => {
     trades,
     portfolio,
     closeTrade,
-    stockList
+    stockList,
+    watchlist,
+    toggleWatchlist
   } = useTrading();
 
   const { userId, user, isAuthenticated, setIsAuthModalOpen } = useAuth();
@@ -93,7 +95,7 @@ export const TerminalPage = () => {
     ? (stockList || []).filter(s =>
         (s.symbol || '').toLowerCase().includes(stockSearchQuery.toLowerCase()) ||
         (s.name || '').toLowerCase().includes(stockSearchQuery.toLowerCase())
-      ).slice(0, 50)
+      )
     : (stockList || []);
 
   const activePositions = trades?.filter(t => t.status === 'EXECUTED') || [];
@@ -255,8 +257,15 @@ export const TerminalPage = () => {
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
-                    <button className="p-3 bg-[#1C212D] rounded-xl hover:bg-gray-800 transition-colors border border-gray-800"><Star className="w-5 h-5 text-gray-400" /></button>
-                    <button className="p-3 bg-[#1C212D] rounded-xl hover:bg-gray-800 transition-colors border border-gray-800"><MoreHorizontal className="w-5 h-5 text-gray-400" /></button>
+                    <button 
+                        onClick={() => toggleWatchlist(selectedStock)}
+                        className="p-3 bg-[#1C212D] rounded-xl hover:bg-gray-800 transition-colors border border-gray-800"
+                    >
+                        <Star className={`w-5 h-5 ${watchlist.includes(selectedStock) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-400'}`} />
+                    </button>
+                    <button className="p-3 bg-[#1C212D] rounded-xl hover:bg-gray-800 transition-colors border border-gray-800">
+                        <MoreHorizontal className="w-5 h-5 text-gray-400" />
+                    </button>
                 </div>
             </div>
         </div>

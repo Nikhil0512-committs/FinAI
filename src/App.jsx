@@ -9,6 +9,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { AppLayout } from './components/AppLayout';
 
 import { DashboardPage } from './pages/DashboardPage';
+import { WatchlistPage } from './pages/WatchlistPage';
 import { TerminalPage } from './pages/TerminalPage';
 import { IntelligencePage } from './pages/IntelligencePage';
 import { ScorecardPage } from './pages/ScorecardPage';
@@ -75,6 +76,7 @@ export function App() {
               <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/watchlist" element={<WatchlistPage />} />
                 <Route path="/terminal" element={<TerminalPage />} />
                 <Route path="/intelligence" element={<IntelligencePage />} />
                 <Route path="/scorecard" element={<ScorecardPage />} />

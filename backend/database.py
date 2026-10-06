@@ -171,6 +171,17 @@ class FinAIDatabase:
             )
         """)
 
+        # User Watchlist Table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS user_watchlist (
+                id SERIAL PRIMARY KEY,
+                user_id TEXT,
+                symbol TEXT,
+                added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (user_id, symbol)
+            )
+        """)
+
         # Initialize Default Demo User if not exists
         cursor.execute("SELECT COUNT(*) FROM portfolio WHERE user_id = 'default_user'")
         if cursor.fetchone()[0] == 0:
@@ -1735,5 +1746,31 @@ class FinAIDatabase:
             result = {r[0]: r[1] for r in cursor.fetchall()}
             cursor.close()
         return result
+
+    def get_user_watchlist(self, user_id):
+        with self._db_lock:
+            cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            cursor.execute("SELECT symbol FROM user_watchlist WHERE user_id = %s ORDER BY added_at DESC", (user_id,))
+            result = [r[0] for r in cursor.fetchall()]
+            cursor.close()
+        return result
+
+    def add_to_watchlist(self, user_id, symbol):
+        with self._db_lock:
+            cursor = self.sqlite_conn.cursor()
+            cursor.execute("""
+                INSERT INTO user_watchlist (user_id, symbol)
+                VALUES (%s, %s)
+                ON CONFLICT(user_id, symbol) DO NOTHING
+            """, (user_id, symbol))
+            self.sqlite_conn.commit()
+            cursor.close()
+
+    def remove_from_watchlist(self, user_id, symbol):
+        with self._db_lock:
+            cursor = self.sqlite_conn.cursor()
+            cursor.execute("DELETE FROM user_watchlist WHERE user_id = %s AND symbol = %s", (user_id, symbol))
+            self.sqlite_conn.commit()
+            cursor.close()
 
 db = FinAIDatabase()

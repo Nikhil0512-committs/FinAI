@@ -80,27 +80,6 @@ export const BehavioralTwin = () => {
     );
   }
 
-  // --- EMPTY STATE ---
-  if (!simplifiedData || simplifiedData.status === 'EMPTY_STATE') {
-    return (
-      <div className="flex flex-col items-center justify-center h-[400px] border border-gray-900 bg-[#020308] p-8 text-center">
-        <ShieldCheck className="w-10 h-10 text-emerald-500 mb-4 opacity-80" />
-        <div className="text-sm font-mono text-white tracking-tight uppercase mb-2">No Costly Psychological Leaks Detected</div>
-        <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest max-w-md">
-          Your recent sample lacks statistically significant tilt events. Keep adhering to your current discipline rules.
-        </div>
-        {projectionData && (
-           <button 
-             onClick={() => setShowLegacy(true)}
-             className="mt-6 text-[10px] text-gray-400 underline uppercase tracking-widest hover:text-white"
-           >
-             View 30-Day Projection
-           </button>
-        )}
-      </div>
-    );
-  }
-
   // --- LEGACY PROJECTION VIEW ---
   if (showLegacy && projectionData) {
     const { projection_data, final_difference, metrics } = projectionData;
@@ -138,6 +117,27 @@ export const BehavioralTwin = () => {
             </AreaChart>
           </ResponsiveContainer>
         </div>
+      </div>
+    );
+  }
+
+  // --- EMPTY STATE ---
+  if (!simplifiedData || simplifiedData.status === 'EMPTY_STATE') {
+    return (
+      <div className="flex flex-col items-center justify-center h-[400px] border border-gray-900 bg-[#020308] p-8 text-center">
+        <ShieldCheck className="w-10 h-10 text-emerald-500 mb-4 opacity-80" />
+        <div className="text-sm font-mono text-white tracking-tight uppercase mb-2">No Costly Psychological Leaks Detected</div>
+        <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest max-w-md">
+          Your recent sample lacks statistically significant tilt events. Keep adhering to your current discipline rules.
+        </div>
+        {projectionData && (
+           <button 
+             onClick={() => setShowLegacy(true)}
+             className="mt-6 text-[10px] text-gray-400 underline uppercase tracking-widest hover:text-white"
+           >
+             View 30-Day Projection
+           </button>
+        )}
       </div>
     );
   }

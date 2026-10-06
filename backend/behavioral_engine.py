@@ -578,7 +578,6 @@ class BehavioralEngine:
             'counterfactual_savings': round(sum([v['pnl'] for k, v in tod_metrics.items() if v['pnl'] < 0]) * -1 + (avg_loss_pnl * revenge_count) + (avg_loss_pnl * (2.0 - rrr) if rrr < 2.0 else 0), 2)
         }
 
-behavioral_engine = BehavioralEngine()
 
     def analyze_simplified_twin(self, raw_trades, active_rules=None, starting_capital=100000.0):
         if not active_rules:
@@ -673,3 +672,5 @@ behavioral_engine = BehavioralEngine()
             'top_leak': 'REVENGE',
             'round_trips': round_trips
         }
+
+behavioral_engine = BehavioralEngine()

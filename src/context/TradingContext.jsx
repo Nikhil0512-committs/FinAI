@@ -299,6 +299,9 @@ export const TradingProvider = ({ children }) => {
             if (!prev || prev.length === 0) return prev;
             return prev.map(s => {
               if (String(s.symbol || '').toUpperCase().trim() === symUpper) {
+                if ((data.source === 'static_fallback' || data.source === 'fallback') && s.source && s.source !== 'static_fallback' && s.source !== 'fallback') {
+                  return s;
+                }
                 return { ...s, ...quoteObj };
               }
               return s;
@@ -411,7 +414,22 @@ export const TradingProvider = ({ children }) => {
   const wsRef = React.useRef(null);
 
   useEffect(() => {
-    setCurrentQuote({ price: null, change_pct: null, time: null, symbol: selectedStock });
+    const existingData = stockList.find(s => s.symbol === selectedStock);
+    setCurrentQuote({
+      price: existingData?.price || null,
+      change_pct: existingData?.change_pct || null,
+      open: existingData?.open || null,
+      high: existingData?.high || null,
+      low: existingData?.low || null,
+      day_high: existingData?.day_high || null,
+      day_low: existingData?.day_low || null,
+      prev_close: existingData?.prev_close || null,
+      volume: existingData?.volume || null,
+      range: existingData?.range || null,
+      symbol: selectedStock,
+      source: existingData?.source || null,
+      time: null
+    });
     fetchCandles(selectedStock, timeframe);
     fetchLiveQuote(selectedStock);
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && selectedStock) {

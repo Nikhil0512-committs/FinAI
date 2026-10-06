@@ -716,6 +716,11 @@ class FinAIDatabase:
         from fyers_engine import fyers_engine
         
         sym_upper = symbol.upper().strip()
+
+        if hasattr(self, '_last_good_quotes') and sym_upper in self._last_good_quotes:
+            lkg = self._last_good_quotes[sym_upper]
+            if time.time() - lkg.get('_cached_at', 0) < 600:
+                return {**lkg, 'source': 'last_known_good'}
         
         # 1. Try Dhan
         try:
@@ -754,7 +759,7 @@ class FinAIDatabase:
             h = round(float(real_quote.get('high', price)), 2)
             l = round(float(real_quote.get('low', price)), 2)
             v = int(real_quote.get('volume', 0))
-            return {
+            result = {
                 'symbol': sym_upper,
                 'price': price,
                 'change_pct': chg,
@@ -771,14 +776,12 @@ class FinAIDatabase:
                 'source': real_quote.get('source', 'yahoo_finance'),
                 'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
+            if not hasattr(self, '_last_good_quotes'):
+                self._last_good_quotes = {}
+            self._last_good_quotes[sym_upper] = {**result, '_cached_at': time.time()}
+            return result
 
         # 4. Fallback to verified curated base prices (covers all 250 Indian stocks)
-        time_bucket = int(time.time() // 30)
-        sym_seed = abs(hash(sym_upper)) % 100000
-        seed_val = int((time_bucket + sym_seed) % (2**31 - 1))
-        rng = np.random.RandomState(seed_val)
-        micro_drift = float(rng.normal(0.0, 0.0001))
-
         data = self.CURATED_STOCK_MARKET_DATA.get(sym_upper)
         if data:
             base_px = float(data['base'])
@@ -804,8 +807,8 @@ class FinAIDatabase:
             prev_px = base_px
             vol_val = 100000
 
-        live_price = round(base_px * (1.0 + micro_drift), 2)
-        change_pct = round(day_pct + (micro_drift * 5.0), 2)
+        live_price = round(base_px, 2)
+        change_pct = round(day_pct, 2)
 
         return {
             'symbol': sym_upper,

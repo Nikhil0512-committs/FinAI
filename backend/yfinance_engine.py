@@ -170,7 +170,13 @@ class YFinanceEngine:
             if len(series) == 0:
                 return None
             price = float(series.iloc[-1])
-            prev = float(series.iloc[0]) if len(series) > 1 else price
+            dates = df.index.date if hasattr(df.index, 'date') else pd.to_datetime(df.reset_index()['Datetime'] if 'Datetime' in df.index.names else df['Datetime']).dt.date
+            unique_dates = sorted(set(dates))
+            if len(unique_dates) >= 2:
+                prev_date = unique_dates[-2]
+                prev = float(series[dates == prev_date].iloc[-1])
+            else:
+                prev = price
             o = float(df[open_col].dropna().iloc[-1]) if open_col and len(df[open_col].dropna()) > 0 else price
             h = float(df[high_col].dropna().iloc[-1]) if high_col and len(df[high_col].dropna()) > 0 else max(price, prev)
             l = float(df[low_col].dropna().iloc[-1]) if low_col and len(df[low_col].dropna()) > 0 else min(price, prev)

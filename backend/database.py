@@ -195,7 +195,24 @@ class FinAIDatabase:
 
         # API Keys Store Table
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS api_keys (
+            
+        CREATE TABLE IF NOT EXISTS accepted_rules (
+            id SERIAL PRIMARY KEY,
+            user_id TEXT,
+            rule_type TEXT,
+            threshold NUMERIC,
+            accepted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            active BOOLEAN DEFAULT TRUE
+        );
+
+        CREATE TABLE IF NOT EXISTS rule_violations_log (
+            id SERIAL PRIMARY KEY,
+            user_id TEXT,
+            rule_id INTEGER,
+            session_date DATE
+        );
+        
+        CREATE TABLE IF NOT EXISTS api_keys (
                 key_name TEXT PRIMARY KEY,
                 key_value TEXT,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

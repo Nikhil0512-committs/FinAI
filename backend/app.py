@@ -539,10 +539,18 @@ def get_tilt_score(user_id: str = 'default_user', current_trade_value: float = 1
 @app.get("/api/behavioral-twin")
 def get_behavioral_twin(user_id: str = 'default_user'):
     trades = db.get_trade_history(user_id)
-    projection = behavioral_engine.generate_behavioral_twin_projection(trades)
-    if not projection:
-        return {"success": False, "error": "Insufficient trade data for projection."}
-    return {"success": True, "projection": projection}
+    simplified_data = behavioral_engine.analyze_simplified_twin(trades)
+    legacy_projection = behavioral_engine.generate_behavioral_twin_projection(trades)
+    
+    if not simplified_data or simplified_data.get('status') == 'EMPTY_STATE':
+        # Fallback to legacy structure or empty
+        return {"success": True, "projection": legacy_projection, "simplified": {"status": "EMPTY_STATE"}}
+        
+    return {
+        "success": True, 
+        "projection": legacy_projection,
+        "simplified": simplified_data
+    }
 
 @app.get("/api/prediction/{symbol}")
 def get_prediction(symbol: str, timeframe: str = '1d'):

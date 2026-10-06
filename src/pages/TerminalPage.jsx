@@ -93,8 +93,8 @@ export const TerminalPage = () => {
     ? (stockList || []).filter(s =>
         (s.symbol || '').toLowerCase().includes(stockSearchQuery.toLowerCase()) ||
         (s.name || '').toLowerCase().includes(stockSearchQuery.toLowerCase())
-      ).slice(0, 15)
-    : (stockList || []).slice(0, 15);
+      ).slice(0, 50)
+    : (stockList || []);
 
   const activePositions = trades?.filter(t => t.status === 'EXECUTED') || [];
 

@@ -813,7 +813,12 @@ class FinAIDatabase:
         # 2. Fetch missing symbols using yfinance batch to get real prices
         missing_from_apis = [s for s in symbols if s not in quote_map]
         if missing_from_apis:
-            yf_quotes = yfinance_engine.get_live_quotes(missing_from_apis)
+            # RENDER MEMORY FIX: yf.download on 200+ symbols crashes Render (512MB RAM).
+            # Limit yfinance batch to the first 50 active symbols. The rest use static fallbacks.
+            yf_batch_limit = 50 if IS_RENDER else 250
+            symbols_to_fetch = missing_from_apis[:yf_batch_limit]
+            
+            yf_quotes = yfinance_engine.get_live_quotes(symbols_to_fetch)
             for q in yf_quotes:
                 quote_map[q['symbol']] = q
 

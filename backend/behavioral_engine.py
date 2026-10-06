@@ -219,7 +219,7 @@ class BehavioralEngine:
         if not user_trades or len(user_trades) < 6:
             return None
             
-        analyzed_trades = [t for t in user_trades if t.get('status') in ('CLOSED', 'OPEN')]
+        analyzed_trades = [t for t in user_trades if t.get('status') in ('CLOSED', 'EXECUTED')]
         if len(analyzed_trades) < 6:
             return None
             

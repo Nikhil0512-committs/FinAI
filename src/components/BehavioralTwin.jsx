@@ -12,9 +12,11 @@ import {
 } from 'recharts';
 import { TrendingUp, TrendingDown, Activity, AlertCircle, RefreshCw } from 'lucide-react';
 import { useTrading } from '../context/TradingContext';
+import { useAuth } from '../context/AuthContext';
 
 export const BehavioralTwin = () => {
-  const { trades, userId } = useTrading();
+  const { trades } = useTrading();
+  const { userId } = useAuth();
   const [projectionData, setProjectionData] = useState(null);
   const [loading, setLoading] = useState(true);
 

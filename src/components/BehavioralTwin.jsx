@@ -107,7 +107,7 @@ export const BehavioralTwin = () => {
           </div>
         </div>
         <div className="flex-1 p-6 relative min-h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
+          <div className="w-full h-[300px]"><ResponsiveContainer width="100%" height="100%">
             <AreaChart data={projection_data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="1 4" stroke="#0f172a" vertical={false} />
               <XAxis dataKey="day" stroke="#334155" tick={{ fontSize: 9, fontFamily: 'monospace' }} />
@@ -115,7 +115,7 @@ export const BehavioralTwin = () => {
               <Area type="monotone" dataKey="current_you" stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.1} />
               <Area type="monotone" dataKey="disciplined_you" stroke="#10b981" fill="#10b981" fillOpacity={0.1} />
             </AreaChart>
-          </ResponsiveContainer>
+          </ResponsiveContainer></div>
         </div>
       </div>
     );
@@ -265,7 +265,7 @@ export const BehavioralTwin = () => {
         </div>
         
         <div className="flex-1 min-h-[250px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
+          <div className="w-full h-[300px]"><ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 10 }}>
               <CartesianGrid strokeDasharray="1 4" stroke="#0f172a" vertical={false} />
               <XAxis dataKey="index" stroke="#334155" tick={{ fontSize: 9, fontFamily: 'monospace' }} tickLine={false} axisLine={false} dy={10} minTickGap={20} />
@@ -297,7 +297,7 @@ export const BehavioralTwin = () => {
                 }}
               />
             </LineChart>
-          </ResponsiveContainer>
+          </ResponsiveContainer></div>
         </div>
         
         <div className="mt-2 text-center text-[9px] text-gray-600 font-mono italic">

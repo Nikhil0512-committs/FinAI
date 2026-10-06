@@ -1825,12 +1825,11 @@ class FinAIDatabase:
             self.sqlite_conn.commit()
             cursor.close()
 
-db = FinAIDatabase()
 
     def get_accepted_rules(self, user_id):
         try:
             with psycopg2.connect(self.db_url, sslmode='require') as conn:
-                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
                     cur.execute("SELECT rule_type, threshold FROM accepted_rules WHERE user_id = %s AND active = TRUE", (user_id,))
                     rows = cur.fetchall()
                     return {row['rule_type']: float(row['threshold']) for row in rows}
@@ -1849,3 +1848,5 @@ db = FinAIDatabase()
         except Exception as e:
             print(f"Error saving rule: {e}")
             return False
+
+db = FinAIDatabase()

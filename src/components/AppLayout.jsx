@@ -166,7 +166,7 @@ export const AppLayout = ({ children }) => {
                   <div className={`flex flex-col px-3.5 py-1.5 rounded-xl border mr-2 shadow-sm ${isDarkMode ? 'bg-[#1C212D]/40 border-[#00E6A8]/20' : 'bg-gray-50 border-gray-200'}`}>
                      <span className={`text-[9px] font-bold uppercase tracking-widest mb-0.5 text-right ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Balance</span>
                      <span className={`text-[13px] font-black tracking-tight text-right ${isDarkMode ? 'text-[#00E6A8]' : 'text-emerald-600'}`}>
-                        ₹{portfolio?.total_value ? Number(portfolio.total_value).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '1,00,000.00'}
+                        ₹{portfolio?.cash_balance ? Number(portfolio.cash_balance).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '1,00,000.00'}
                      </span>
                   </div>
                   <button onClick={() => setIsDarkMode(!isDarkMode)} className="hover:text-gray-400 transition-colors">

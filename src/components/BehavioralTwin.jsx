@@ -73,7 +73,7 @@ export const BehavioralTwin = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-[400px] border border-gray-900 bg-[#020308]">
+      <div className="flex flex-col items-center justify-center min-h-[300px] md:min-h-[400px] border border-gray-900 bg-[#020308]">
         <RefreshCw className="w-6 h-6 text-cyan-500 animate-spin mb-4" />
         <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Running Behavioral Diagnostics...</div>
       </div>
@@ -94,16 +94,16 @@ export const BehavioralTwin = () => {
         </button>
         
         {/* Render Legacy Layout (Condensed for brevity) */}
-        <div className="p-4 sm:p-6 md:p-4 sm:p-6 md:p-8 border-b border-gray-900 flex flex-col md:flex-row items-start justify-between gap-6">
+        <div className="p-4 md:p-8 border-b border-gray-900 flex flex-col md:flex-row items-start justify-between gap-6">
           <div>
             <div className="text-[10px] font-mono text-cyan-500 uppercase tracking-widest mb-2 flex items-center gap-2">
               <Activity className="w-3.5 h-3.5" /> Legacy Monte Carlo
             </div>
-            <h2 className="text-2xl font-light font-mono text-white tracking-tight uppercase">30-Day Projection</h2>
+            <h2 className="text-xl md:text-2xl font-light font-mono text-white tracking-tight uppercase">30-Day Projection</h2>
           </div>
           <div className="text-left md:text-right">
             <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-1">Projected Gap</div>
-            <div className="text-3xl font-light font-mono text-cyan-400">₹{savings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div>
+            <div className="text-2xl md:text-3xl font-light font-mono text-cyan-400">₹{savings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div>
           </div>
         </div>
         <div className="flex-1 p-4 sm:p-6 relative min-h-[300px]">
@@ -124,7 +124,7 @@ export const BehavioralTwin = () => {
   // --- EMPTY STATE ---
   if (!simplifiedData || simplifiedData.status === 'EMPTY_STATE') {
     return (
-      <div className="flex flex-col items-center justify-center h-[400px] border border-gray-900 bg-[#020308] p-4 sm:p-6 md:p-8 text-center">
+      <div className="flex flex-col items-center justify-center min-h-[300px] md:min-h-[400px] border border-gray-900 bg-[#020308] p-4 sm:p-6 md:p-8 text-center">
         <ShieldCheck className="w-10 h-10 text-emerald-500 mb-4 opacity-80" />
         <div className="text-sm font-mono text-white tracking-tight uppercase mb-2">No Costly Psychological Leaks Detected</div>
         <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest max-w-md">
@@ -195,7 +195,7 @@ export const BehavioralTwin = () => {
     <div className="border border-gray-900 bg-[#020308] flex flex-col h-full overflow-hidden">
       
       {/* 1. HERO VERDICT */}
-      <div className="p-4 sm:p-6 md:p-4 sm:p-6 md:p-8 border-b border-gray-900 bg-gradient-to-br from-rose-950/20 to-transparent">
+      <div className="p-4 md:p-8 border-b border-gray-900 bg-gradient-to-br from-rose-950/20 to-transparent">
         <div className="flex flex-col lg:flex-row justify-between items-start gap-8">
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-4">
@@ -210,7 +210,7 @@ export const BehavioralTwin = () => {
               </div>
             </div>
             
-            <h2 className="text-2xl md:text-3xl font-light font-mono text-white tracking-tight leading-snug">
+            <h2 className="text-2xl md:text-2xl md:text-3xl font-light font-mono text-white tracking-tight leading-snug">
               {topLeak} cost you <span className="text-rose-400 font-medium">₹{simplifiedData.net_tilt_cost.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span> recently.
             </h2>
             
@@ -226,13 +226,13 @@ export const BehavioralTwin = () => {
                 </div>
               </div>
               {ruleAccepted ? (
-                <div className="flex items-center gap-2 text-emerald-400 text-xs font-mono uppercase tracking-widest border border-emerald-900/50 bg-emerald-950/30 px-4 py-2">
+                <div className="flex items-center justify-center w-full md:w-auto gap-2 text-emerald-400 text-xs font-mono uppercase tracking-widest border border-emerald-900/50 bg-emerald-950/30 px-4 py-2">
                   <CheckCircle2 className="w-4 h-4"/> Rule Accepted
                 </div>
               ) : (
                 <button 
                   onClick={handleTakeRule}
-                  className="whitespace-nowrap px-6 py-2 bg-white text-black text-xs font-mono font-bold uppercase tracking-widest hover:bg-cyan-400 transition-colors"
+                  className="w-full md:w-auto whitespace-nowrap px-6 py-2 bg-white text-center justify-center text-black text-xs font-mono font-bold uppercase tracking-widest hover:bg-cyan-400 transition-colors"
                 >
                   Take This Rule
                 </button>

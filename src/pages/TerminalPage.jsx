@@ -132,18 +132,13 @@ export const TerminalPage = () => {
     return parseFloat(pos.price || 0);
   };
 
-  // Calculations for Today's Performance
-  const todayPnL = activePositions.reduce((acc, t) => {
-    const entryPx = parseFloat(t.price || 0);
-    const qty = parseFloat(t.quantity || 0);
-    const livePx = getPositionLivePrice(t);
-    const pnl = t.side === 'BUY' ? (livePx - entryPx) * qty : (entryPx - livePx) * qty;
-    return acc + pnl;
-  }, 0);
-  const todayReturn = portfolio?.total_value > 0 ? (todayPnL / portfolio.total_value) * 100 : 0;
-  
   const cash = portfolio?.cash_balance || 100000;
   const totalVal = portfolio?.total_value || 100000;
+  const initialBal = portfolio?.initial_balance || 100000;
+
+  const todayPnL = totalVal - initialBal;
+  const todayReturn = initialBal > 0 ? (todayPnL / initialBal) * 100 : 0;
+  
   const usedMargin = totalVal - cash;
   
   // Custom tooltip
@@ -612,13 +607,13 @@ export const TerminalPage = () => {
                 <div className="flex justify-between items-end mt-2 px-1">
                     <div className="flex flex-col">
                         <span className={`text-3xl font-bold tracking-tight mb-1 ${todayPnL >= 0 ? 'text-[#00E6A8]' : 'text-rose-500'}`}>
-                            {todayPnL >= 0 ? '+' : ''}₹{todayPnL.toFixed(2)}
+                            {todayPnL >= 0 ? '+' : '-'}₹{Math.abs(todayPnL).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                         </span>
                         <span className="text-[11px] text-gray-500 font-medium">Today's P&L</span>
                     </div>
                     <div className="flex flex-col items-end">
                         <span className={`text-base font-bold mb-1 ${todayReturn >= 0 ? 'text-[#00E6A8]' : 'text-rose-500'}`}>
-                            {todayReturn >= 0 ? '+' : ''}{todayReturn.toFixed(2)}%
+                            {todayReturn >= 0 ? '+' : '-'}{Math.abs(todayReturn).toFixed(2)}%
                         </span>
                         <span className="text-[11px] text-gray-500 font-medium">Today's Return</span>
                     </div>

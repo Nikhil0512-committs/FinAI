@@ -163,9 +163,9 @@ export const AppLayout = ({ children }) => {
                </div>
                
               <div className="flex items-center gap-5 relative">
-                  <div className="flex flex-col border-r pr-5 mr-1 border-gray-200 dark:border-[#1C212D]">
-                     <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider mb-1 text-right">Balance</span>
-                     <span className="text-sm font-bold text-[#00E6A8] text-right">
+                  <div className={`flex flex-col px-3.5 py-1.5 rounded-xl border mr-2 shadow-sm ${isDarkMode ? 'bg-[#1C212D]/40 border-[#00E6A8]/20' : 'bg-gray-50 border-gray-200'}`}>
+                     <span className={`text-[9px] font-bold uppercase tracking-widest mb-0.5 text-right ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Balance</span>
+                     <span className={`text-[13px] font-black tracking-tight text-right ${isDarkMode ? 'text-[#00E6A8]' : 'text-emerald-600'}`}>
                         ₹{portfolio?.total_value ? Number(portfolio.total_value).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '1,00,000.00'}
                      </span>
                   </div>

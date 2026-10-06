@@ -113,8 +113,14 @@ export const TerminalPage = () => {
       quantity: parseInt(quantity),
       price: activePrice,
       sentiment_tag: 'Neutral',
+      order_type: orderType,
     };
-    await handleEvaluateAndOrder(orderParams);
+    const res = await handleEvaluateAndOrder(orderParams);
+    if (res && res.success === false && res.error) {
+      alert(`Trade failed: ${res.error}`);
+    } else if (res && res.success) {
+      alert(`Trade executed successfully!`);
+    }
     setSubmitting(false);
   };
 

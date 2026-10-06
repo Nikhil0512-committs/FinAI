@@ -25,7 +25,7 @@ const DEFAULT_TOP_STOCKS = [
 const TradingContext = createContext();
 
 export const TradingProvider = ({ children }) => {
-  const { user, userId, token } = useAuth();
+  const { user, userId, token, setIsAuthModalOpen } = useAuth();
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [demoInitializationState, setDemoInitializationState] = useState('IDLE');
   const [selectedStock, setSelectedStock] = useState('ADANIENT');
@@ -165,6 +165,10 @@ export const TradingProvider = ({ children }) => {
   };
 
   const toggleWatchlist = async (symbol) => {
+    if (!token) {
+      if (setIsAuthModalOpen) setIsAuthModalOpen(true);
+      return;
+    }
     const isWatched = watchlist.includes(symbol);
     
     // Optimistic UI update

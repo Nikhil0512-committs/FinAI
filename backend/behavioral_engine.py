@@ -216,11 +216,11 @@ class BehavioralEngine:
         Path A: Continuing current habits (Current You)
         Path B: Following rules (Disciplined You)
         """
-        if not user_trades or len(user_trades) < 3:
+        if not user_trades or len(user_trades) < 6:
             return None
             
         closed_trades = [t for t in user_trades if t.get('status') == 'CLOSED']
-        if not closed_trades:
+        if len(closed_trades) < 6:
             return None
             
         pnls = [float(t.get('pnl', 0.0)) for t in closed_trades]

@@ -29,6 +29,10 @@ export const TradingProvider = ({ children }) => {
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [demoInitializationState, setDemoInitializationState] = useState('IDLE');
   const [selectedStock, setSelectedStock] = useState('ADANIENT');
+  const selectedStockRef = React.useRef(selectedStock);
+  useEffect(() => {
+    selectedStockRef.current = selectedStock;
+  }, [selectedStock]);
   const [timeframe, setTimeframe] = useState('5m');
   const [portfolio, setPortfolio] = useState({
     cash_balance: 100000.0,
@@ -505,7 +509,7 @@ export const TradingProvider = ({ children }) => {
                 } : s);
               });
 
-              if (sym === String(selectedStock).toUpperCase().trim()) {
+              if (sym === String(selectedStockRef.current).toUpperCase().trim()) {
                 setCurrentQuote((prev) => ({
                   ...prev,
                   price: px,

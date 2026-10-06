@@ -30,13 +30,43 @@ if not IS_RENDER:
 else:
     HAS_DUCKDB = False
 
+from psycopg2.pool import ThreadedConnectionPool
+
+class DBLockProxy:
+    def __init__(self, pool):
+        self.pool = pool
+        self.local = threading.local()
+
+    def __enter__(self):
+        self.local.conn = self.pool.getconn()
+        self.local.conn.autocommit = True
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if hasattr(self.local, 'conn'):
+            self.pool.putconn(self.local.conn)
+            del self.local.conn
+
 class FinAIDatabase:
     def __init__(self):
-        self.sqlite_conn = psycopg2.connect(os.environ.get('DATABASE_URL'), sslmode='require')
-        self.sqlite_conn.autocommit = True
-        self._db_lock = threading.RLock()
+        self.pool = ThreadedConnectionPool(1, 40, os.environ.get('DATABASE_URL'), sslmode='require')
+        self._db_lock = DBLockProxy(self.pool)
+        
+    @property
+    def sqlite_conn(self):
+        if not hasattr(self._db_lock.local, 'conn'):
+            self.local_temp_conn = self.pool.getconn()
+            self.local_temp_conn.autocommit = True
+            return self.local_temp_conn
+        return self._db_lock.local.conn
+
+    def _cleanup_temp_conn(self):
+        if hasattr(self, 'local_temp_conn'):
+            self.pool.putconn(self.local_temp_conn)
+            del self.local_temp_conn
         
         self._init_sqlite_tables()
+        self._cleanup_temp_conn()
         self._zip_candle_cache = {}
         self._zip_namelist_set = None
         
@@ -1594,26 +1624,26 @@ class FinAIDatabase:
         if not self.is_market_open():
             return []
         
-        cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cursor.execute("SELECT * FROM trades WHERE user_id = %s AND status = 'AMO_PENDING'", (user_id,))
-        pending_amos = [dict(r) for r in cursor.fetchall()]
-        
-        executed = []
-        for t in pending_amos:
-            sym = t['symbol']
-            execution_price = self.get_symbol_live_price(sym)
+        with self._db_lock:
+            cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            cursor.execute("SELECT * FROM trades WHERE user_id = %s AND status = 'AMO_PENDING'", (user_id,))
+            pending_amos = [dict(r) for r in cursor.fetchall()]
             
-            cursor.execute("""
-                UPDATE trades 
-                SET status = 'EXECUTED', price = %s, total_value = %s, timestamp = CURRENT_TIMESTAMP 
-                WHERE id = %s
-            """, (execution_price, float(t['quantity']) * execution_price, t['id']))
-            executed.append(t['trade_code'])
-            
-        if executed:
-            self.sqlite_conn.commit()
-            print(f"[FinAI Database] Auto-executed {len(executed)} pending AMO orders at 09:15 AM market open!")
-        return executed
+            executed = []
+            for t in pending_amos:
+                sym = t['symbol']
+                execution_price = self.get_symbol_live_price(sym)
+                
+                cursor.execute("""
+                    UPDATE trades 
+                    SET status = 'EXECUTED', price = %s, total_value = %s, timestamp = CURRENT_TIMESTAMP 
+                    WHERE id = %s
+                """, (execution_price, float(t['quantity']) * execution_price, t['id']))
+                executed.append(t['trade_code'])
+                
+            if executed:
+                print(f"[FinAI Database] Auto-executed {len(executed)} pending AMO orders at 09:15 AM market open!")
+            return executed
 
     def process_eod_square_off(self, user_id='default_user'):
         """Automatically squares off all INTRADAY / MIS open positions at market end (15:20 IST)"""
@@ -1622,13 +1652,14 @@ class FinAIDatabase:
         now_ist = datetime.now(ist)
         
         if now_ist.weekday() <= 4 and (now_ist.hour > 15 or (now_ist.hour == 15 and now_ist.minute >= 20)):
-            cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-            cursor.execute("""
-                SELECT * FROM trades 
-                WHERE user_id = %s AND status = 'EXECUTED' AND (product_type = 'MIS' OR product_type = 'INTRADAY')
-            """, (user_id,))
-            open_intraday = [dict(r) for r in cursor.fetchall()]
-            
+            with self._db_lock:
+                cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+                cursor.execute("""
+                    SELECT * FROM trades 
+                    WHERE user_id = %s AND status = 'EXECUTED' AND (product_type = 'MIS' OR product_type = 'INTRADAY')
+                """, (user_id,))
+                open_intraday = [dict(r) for r in cursor.fetchall()]
+                
             for t in open_intraday:
                 exit_price = self.get_symbol_live_price(t['symbol'])
                 try:

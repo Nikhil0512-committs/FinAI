@@ -470,11 +470,16 @@ async def execute_trade(req: ExecuteTradeRequest, user_id: str = Depends(get_cur
             "trade": trade
         })
 
+        portfolio = db.get_portfolio(req.user_id)
+        trades = db.get_trade_history(req.user_id)
+
         if trade.get('status') == 'AMO_PENDING':
             return {
                 "status": "AMO_QUEUED",
                 "message": f"After Market Order (AMO) for {req.symbol} queued successfully! Order will execute automatically at 09:15 AM IST market open.",
                 "trade": trade,
+                "portfolio": portfolio,
+                "trades": trades,
                 "kafka_event_id": order_event_id
             }
 
@@ -482,6 +487,8 @@ async def execute_trade(req: ExecuteTradeRequest, user_id: str = Depends(get_cur
             "status": "EXECUTED",
             "message": f"Order EXECUTED successfully for {req.quantity} shares of {req.symbol} @ ₹{exec_price:.2f}",
             "trade": trade,
+            "portfolio": portfolio,
+            "trades": trades,
             "kafka_event_id": order_event_id
         }
     except Exception as e:
@@ -503,7 +510,9 @@ async def close_trade(req: CloseTradeRequest, user_id: str = Depends(get_current
             "trade": closed_trade
         })
 
-        return {"status": "SUCCESS", "trade": closed_trade}
+        portfolio = db.get_portfolio(user_id)
+        trades = db.get_trade_history(user_id)
+        return {"status": "SUCCESS", "trade": closed_trade, "portfolio": portfolio, "trades": trades}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

@@ -507,8 +507,10 @@ export const TradingProvider = ({ children }) => {
             } else if (data.type === 'INDICES' && data.data) {
               setMarketIndices(data.data);
             } else if (data.type === 'TRADE_EXECUTED' || data.type === 'TRADE_CLOSED' || data.type === 'SL_TP_TRIGGERED') {
-              fetchTrades(userId);
-              fetchPortfolio(userId);
+              if (data.user_id === userId) {
+                 // We will update the state locally from the HTTP response, so we don't strictly need to fetch here.
+                 // However, we can fetch optionally if there's a drift, but we'll disable it for instant snappiness.
+              }
             }
           } catch (e) {
             // Ignore parse errors
@@ -550,19 +552,20 @@ export const TradingProvider = ({ children }) => {
       fetchActivePositionQuotes();
     }, 15000);
     
+    // We already get high-frequency updates via WebSocket, so we don't need 3-second HTTP polling.
+    // Fetch quotes and market status every 15 seconds as a fallback instead of 3 seconds.
     const quoteInterval = setInterval(() => {
       fetchLiveQuote(selectedStock);
       fetchMarketStatus();
-      fetchPortfolio(userId);
-    }, 3000);
+    }, 15000);
 
     const stockListInterval = setInterval(() => {
       fetchStockList();
-    }, 5000);
+    }, 60000);
 
     const candleInterval = setInterval(() => {
       fetchCandles(selectedStock, timeframe);
-    }, 10000);
+    }, 15000);
 
     return () => {
       clearInterval(pnlInterval);
@@ -696,25 +699,32 @@ export const TradingProvider = ({ children }) => {
         const data = await res.json();
         if (data.status === 'PAUSED_COOLING_OFF') {
           setCoolingOffTimer(20 * 60);
+          if (data.portfolio) setPortfolio(data.portfolio);
+          if (data.trades) {
+             setTrades(data.trades);
+          } else if (data.trade) {
+             setTrades(prev => [data.trade, ...(prev || []).filter(t => t.trade_code !== data.trade.trade_code)]);
+          }
           setActiveXaiReceipt(null);
           setPendingTrade(null);
-          fetchPortfolio();
-          return { success: true, message: data.message };
+          return { success: true, trade: data.trade };
         } else if (data.status === 'AMO_QUEUED') {
-          if (data.trade) {
-            setTrades(prev => [data.trade, ...(prev || []).filter(t => t.trade_code !== data.trade.trade_code)]);
+          if (data.portfolio) setPortfolio(data.portfolio);
+          if (data.trades) {
+             setTrades(data.trades);
+          } else if (data.trade) {
+             setTrades(prev => [data.trade, ...(prev || []).filter(t => t.trade_code !== data.trade.trade_code)]);
           }
-          fetchPortfolio();
-          fetchTrades();
           setActiveXaiReceipt(null);
           setPendingTrade(null);
           return { success: true, is_amo: true, message: data.message, trade: data.trade };
         } else {
-          if (data.trade) {
-            setTrades(prev => [data.trade, ...(prev || []).filter(t => t.trade_code !== data.trade.trade_code)]);
+          if (data.portfolio) setPortfolio(data.portfolio);
+          if (data.trades) {
+             setTrades(data.trades);
+          } else if (data.trade) {
+             setTrades(prev => [data.trade, ...(prev || []).filter(t => t.trade_code !== data.trade.trade_code)]);
           }
-          fetchPortfolio();
-          fetchTrades();
           setActiveXaiReceipt(null);
           setPendingTrade(null);
           return { success: true, trade: data.trade };
@@ -774,8 +784,8 @@ export const TradingProvider = ({ children }) => {
       });
       if (res.ok) {
         const data = await res.json();
-        await fetchPortfolio();
-        await fetchTrades();
+        if (data.portfolio) setPortfolio(data.portfolio);
+        if (data.trades) setTrades(data.trades);
         return { success: true, trade: data.trade };
       } else {
         const err = await res.json().catch(() => ({ detail: 'Failed to square off trade.' }));

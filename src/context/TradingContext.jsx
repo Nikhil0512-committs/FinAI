@@ -165,13 +165,14 @@ export const TradingProvider = ({ children }) => {
   };
 
   const toggleWatchlist = async (symbol) => {
-    if (!token) return;
     const isWatched = watchlist.includes(symbol);
     
     // Optimistic UI update
     setWatchlist(prev => 
       isWatched ? prev.filter(s => s !== symbol) : [...prev, symbol]
     );
+
+    if (!token) return;
 
     try {
       const res = await fetch(`${API_BASE}/api/watchlist${isWatched ? `/${symbol}` : ''}`, {
@@ -549,11 +550,11 @@ export const TradingProvider = ({ children }) => {
       fetchLiveQuote(selectedStock);
       fetchMarketStatus();
       fetchPortfolio(userId);
-    }, 8000);
+    }, 3000);
 
     const stockListInterval = setInterval(() => {
       fetchStockList();
-    }, 20000);
+    }, 5000);
 
     const candleInterval = setInterval(() => {
       fetchCandles(selectedStock, timeframe);

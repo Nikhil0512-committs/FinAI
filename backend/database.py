@@ -11,15 +11,23 @@ import numpy as np
 from datetime import datetime, timedelta
 import threading
 
+# Detect Render deployment (Render sets RENDER=true automatically)
+IS_RENDER = os.environ.get('RENDER', '').lower() in ('true', '1', 'yes')
+
 # Path to the zip file and database files
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ZIP_PATH = os.path.join(BASE_DIR, "archive (1).zip")
+# Skip 4.1GB ZIP file on Render free tier (512MB RAM limit)
+ZIP_PATH = os.path.join(BASE_DIR, "archive (1).zip") if not IS_RENDER else None
 DB_PATH = os.path.join(BASE_DIR, "finai.db")
 
-try:
-    import duckdb
-    HAS_DUCKDB = True
-except ImportError:
+# Skip DuckDB on Render to save ~100MB RAM
+if not IS_RENDER:
+    try:
+        import duckdb
+        HAS_DUCKDB = True
+    except ImportError:
+        HAS_DUCKDB = False
+else:
     HAS_DUCKDB = False
 
 class FinAIDatabase:
@@ -59,7 +67,7 @@ class FinAIDatabase:
         return _ctx()
 
     def _discover_zip_symbols(self):
-        if not os.path.exists(ZIP_PATH):
+        if ZIP_PATH is None or not os.path.exists(ZIP_PATH):
             return []
         try:
             with zipfile.ZipFile(ZIP_PATH) as z:
@@ -473,7 +481,7 @@ class FinAIDatabase:
         return result
 
     def _read_zip_candles(self, symbol, limit=1000):
-        if not os.path.exists(ZIP_PATH):
+        if ZIP_PATH is None or not os.path.exists(ZIP_PATH):
             return None
 
         sym_upper = symbol.upper()
@@ -770,7 +778,7 @@ class FinAIDatabase:
             'prev_close': round(prev_px, 2),
             'volume': vol_val,
             'range': f"₹{min(low_px, live_price):.2f} - ₹{max(high_px, live_price):.2f}",
-            'source': 'nse_live_feed',
+            'source': 'static_fallback',
             'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
 
@@ -783,7 +791,7 @@ class FinAIDatabase:
         cache_key = limit
         if cache_key in self._snapshot_cache:
             cached_res, cached_ts = self._snapshot_cache[cache_key]
-            if now_ts - cached_ts < 25.0:
+            if now_ts - cached_ts < 60.0:
                 return cached_res
 
         from dhan_engine import dhan_engine

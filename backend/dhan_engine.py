@@ -26,8 +26,12 @@ class DhanEngine:
         }
         self.symbol_map_reverse = {v: k for k, v in self.symbol_map.items()}
         
-        # Load full Scrip Master in a non-blocking background thread
-        threading.Thread(target=self._load_symbol_map, daemon=True).start()
+        # Load full Scrip Master in a non-blocking background thread (skip on Render to conserve memory)
+        import os as _os
+        if not _os.environ.get('RENDER', '').lower() in ('true', '1', 'yes'):
+            threading.Thread(target=self._load_symbol_map, daemon=True).start()
+        else:
+            print("[DhanEngine] Skipping Scrip Master download on Render. Using pre-seeded symbols.")
 
     def _load_symbol_map(self):
         """Downloads and maps Dhan Security IDs to symbols asynchronously"""

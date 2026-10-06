@@ -13,8 +13,8 @@ class YFinanceEngine:
         self._quote_cache = {}
         self._individual_quote_cache = {}
         self._cache_ttl = 300  # 300 seconds (5 min) TTL for candles
-        self._quote_ttl = 60   # 60 seconds TTL for live quotes to prevent rate limits
-        self._executor = ThreadPoolExecutor(max_workers=4)
+        self._quote_ttl = 120  # 120 seconds TTL for live quotes to reduce rate limiting on Render
+        self._executor = ThreadPoolExecutor(max_workers=2)
 
     def _get_yf_symbol(self, symbol):
         """Converts Indian NSE symbol to Yahoo Finance symbol."""
@@ -26,7 +26,6 @@ class YFinanceEngine:
         if sym_upper in ('BANKNIFTY', 'NIFTYBANK', 'NIFTY BANK'):
             return '^NSEBANK'
         aliases = {
-            'TATAMOTORS': 'TMPV',
             'ZOMATO': 'ETERNAL',
             'LTIM': 'LTM',
             'BOB': 'BANKBARODA',

@@ -100,7 +100,9 @@ subscribed_symbols = set()
 # ─── Background Market Streaming & Settlement Task ───
 async def market_streaming_worker():
     """Resource-efficient background stream for SL/TP, active symbols, and market indices."""
-    base_symbols = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'ADANIENT', 'SBIN', 'TATAMOTORS', 'ITC', 'LT']
+    _is_render = os.environ.get('RENDER', '').lower() in ('true', '1', 'yes')
+    base_symbols = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK'] if _is_render else ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'ADANIENT', 'SBIN', 'TATAMOTORS', 'ITC', 'LT']
+    _stream_interval = 15.0 if _is_render else 5.0
     loop_count = 0
     while True:
         try:
@@ -146,7 +148,7 @@ async def market_streaming_worker():
                     })
 
             loop_count += 1
-            await asyncio.sleep(5.0)  # Stream every 5s for active clients
+            await asyncio.sleep(_stream_interval)  # Adaptive interval: 15s on Render, 5s locally
         except asyncio.CancelledError:
             break
         except Exception:
@@ -160,7 +162,10 @@ async def on_startup():
     await redis_engine.init()
     await kafka_engine.init()
     _streaming_task = asyncio.create_task(market_streaming_worker())
-    asyncio.create_task(asyncio.to_thread(db.get_live_stock_snapshot, 250))
+    # Preload stock snapshot (reduced on Render free tier to save memory)
+    _is_render = os.environ.get('RENDER', '').lower() in ('true', '1', 'yes')
+    _preload_limit = 50 if _is_render else 250
+    asyncio.create_task(asyncio.to_thread(db.get_live_stock_snapshot, _preload_limit))
     asyncio.create_task(asyncio.to_thread(yfinance_engine.get_market_indices))
 
 @app.on_event("shutdown")

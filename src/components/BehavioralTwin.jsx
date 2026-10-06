@@ -59,7 +59,7 @@ export const BehavioralTwin = () => {
         <AlertCircle className="w-8 h-8 text-gray-700 mb-4" />
         <div className="text-sm font-mono text-gray-400 mb-2">Insufficient History for Behavioral Twin</div>
         <div className="text-[10px] font-mono text-gray-600 uppercase tracking-widest max-w-md">
-          Execute and close at least 6 paper trades with a mix of wins and losses to generate your 30-day behavioral projection.
+          Execute at least 6 paper trades with a mix of wins and losses to generate your 30-day behavioral projection.
         </div>
       </div>
     );

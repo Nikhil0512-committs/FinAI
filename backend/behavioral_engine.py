@@ -219,11 +219,11 @@ class BehavioralEngine:
         if not user_trades or len(user_trades) < 6:
             return None
             
-        closed_trades = [t for t in user_trades if t.get('status') == 'CLOSED']
-        if len(closed_trades) < 6:
+        analyzed_trades = [t for t in user_trades if t.get('status') in ('CLOSED', 'OPEN')]
+        if len(analyzed_trades) < 6:
             return None
             
-        pnls = [float(t.get('pnl', 0.0)) for t in closed_trades]
+        pnls = [float(t.get('pnl', 0.0)) for t in analyzed_trades]
         win_pnls = [p for p in pnls if p > 0]
         loss_pnls = [p for p in pnls if p <= 0]
         
@@ -233,13 +233,13 @@ class BehavioralEngine:
         
         # Assess revenge trading frequency and cost
         revenge_losses = []
-        for i in range(len(closed_trades) - 1):
-            if float(closed_trades[i+1].get('pnl', 0.0)) < 0:
+        for i in range(len(analyzed_trades) - 1):
+            if float(analyzed_trades[i+1].get('pnl', 0.0)) < 0:
                 try:
-                    t1 = datetime.strptime(str(closed_trades[i+1]['timestamp']).split('.')[0], '%Y-%m-%d %H:%M:%S')
-                    t2 = datetime.strptime(str(closed_trades[i]['timestamp']).split('.')[0], '%Y-%m-%d %H:%M:%S')
+                    t1 = datetime.strptime(str(analyzed_trades[i+1]['timestamp']).split('.')[0], '%Y-%m-%d %H:%M:%S')
+                    t2 = datetime.strptime(str(analyzed_trades[i]['timestamp']).split('.')[0], '%Y-%m-%d %H:%M:%S')
                     if (t2 - t1).total_seconds() / 60.0 < 20.0:
-                        revenge_losses.append(float(closed_trades[i].get('pnl', 0.0)))
+                        revenge_losses.append(float(analyzed_trades[i].get('pnl', 0.0)))
                 except: pass
                 
         revenge_freq = len(revenge_losses) / len(loss_pnls) if loss_pnls else 0.2
@@ -247,9 +247,9 @@ class BehavioralEngine:
         
         # Assess position sizing escalation cost
         escalation_losses = []
-        past_values = [float(t.get('total_value') or (float(t.get('quantity', 1)) * float(t.get('price', 100.0)))) for t in closed_trades]
+        past_values = [float(t.get('total_value') or (float(t.get('quantity', 1)) * float(t.get('price', 100.0)))) for t in analyzed_trades]
         avg_size = np.mean(past_values) if past_values else 10000.0
-        for t in closed_trades:
+        for t in analyzed_trades:
             t_size = float(t.get('total_value') or (float(t.get('quantity', 1)) * float(t.get('price', 100.0))))
             if t_size > avg_size * 1.2 and float(t.get('pnl', 0.0)) < 0:
                 escalation_losses.append(float(t.get('pnl', 0.0)))

@@ -160,7 +160,7 @@ export const BehavioralScorecard = () => {
           {isUnlocked && (
             <button 
               onClick={() => window.print()}
-              className="text-[10px] font-mono px-3 py-1 border border-cyan-900/50 text-cyan-400 bg-cyan-950/20 hover:bg-cyan-900/40 transition-colors uppercase tracking-widest flex items-center gap-2"
+              className="print-hidden text-[10px] font-mono px-3 py-1 border border-cyan-900/50 text-cyan-400 bg-cyan-950/20 hover:bg-cyan-900/40 transition-colors uppercase tracking-widest flex items-center gap-2"
             >
               Export PDF
             </button>
@@ -305,7 +305,7 @@ export const BehavioralScorecard = () => {
         ) : (
           <>
             {/* ─── 1. DISCIPLINE HERO ─── */}
-            <section className="grid grid-cols-1 lg:grid-cols-12 gap-px bg-gray-900 border border-gray-900">
+            <section className="break-inside-avoid grid grid-cols-1 lg:grid-cols-12 gap-px bg-gray-900 border border-gray-900">
               
               {/* Main Score Instrument */}
               <div className="lg:col-span-5 bg-[#050811] p-12 flex flex-col items-center justify-center relative overflow-hidden">
@@ -454,7 +454,7 @@ export const BehavioralScorecard = () => {
         </section>
 
         {/* ─── 3. LOSS PREVENTION IMPACT ─── */}
-        <section className="bg-gray-900 p-px">
+        <section className="break-inside-avoid bg-gray-900 p-px">
           <div className="bg-[#050811] p-10 flex flex-col md:flex-row items-center justify-between relative overflow-hidden">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-emerald-900/10 via-[#050811]/0 to-[#050811]/0 pointer-events-none" />
             
@@ -481,12 +481,12 @@ export const BehavioralScorecard = () => {
         </section>
 
         {/* ─── NEW: BEHAVIORAL TWIN SIMULATOR ─── */}
-        <section className="mb-16">
+        <section className="break-inside-avoid mb-16">
            <BehavioralTwin />
         </section>
 
         {/* ─── 4. BEHAVIORAL FINGERPRINT & COMMAND PANEL ─── */}
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-px bg-gray-900 border border-gray-900">
+        <section className="break-inside-avoid grid grid-cols-1 lg:grid-cols-12 gap-px bg-gray-900 border border-gray-900">
           
           {/* Radar */}
           <div className="lg:col-span-6 bg-[#050811] p-10 flex flex-col">
@@ -541,7 +541,7 @@ export const BehavioralScorecard = () => {
         </section>
 
         {/* ─── 5. TRADER COACHING BRIEF & FINAI ANALYSIS ─── */}
-        <section className="bg-[#050811] border border-gray-900 p-10">
+        <section className="break-inside-avoid bg-[#050811] border border-gray-900 p-10">
           <div className="text-[10px] font-mono text-cyan-500 uppercase tracking-widest mb-8">06 &middot; FinAI Behavioral Analysis & Disciplined Principles</div>
           
           {/* AI Insights Narrative */}

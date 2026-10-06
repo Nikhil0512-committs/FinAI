@@ -45,9 +45,9 @@ export const AppLayout = ({ children }) => {
   };
   
   return (
-    <div className={`flex h-screen overflow-hidden selection:bg-[#00E6A8]/30 selection:text-[#00E6A8] ${isDarkMode ? 'bg-[#0B0E14] text-gray-300' : 'bg-gray-50 text-gray-800'}`}>
+    <div className={`flex h-screen overflow-hidden selection:bg-[#00E6A8]/30 selection:text-[#00E6A8] print:h-auto print:overflow-visible ${isDarkMode ? 'bg-[#0B0E14] text-gray-300' : 'bg-gray-50 text-gray-800'}`}>
       {/* SIDEBAR */}
-      <div className={`w-64 border-r flex flex-col justify-between py-6 shrink-0 z-20 ${isDarkMode ? 'border-[#1C212D] bg-[#0B0E14]' : 'border-gray-200 bg-white'}`}>
+      <div className={`w-64 border-r flex flex-col justify-between py-6 shrink-0 z-20 print-hidden ${isDarkMode ? 'border-[#1C212D] bg-[#0B0E14]' : 'border-gray-200 bg-white'}`}>
         <div>
           <div className="px-6 mb-8 flex items-center gap-2">
             <h1 className="text-2xl font-bold text-white tracking-tight flex items-center">
@@ -73,10 +73,10 @@ export const AppLayout = ({ children }) => {
       </div>
 
       {/* MAIN CONTENT AREA */}
-      <div className="flex-1 flex flex-col overflow-hidden relative">
+      <div className="flex-1 flex flex-col overflow-hidden relative print:overflow-visible">
         
         {/* TOP BAR */}
-        <header className={`h-20 border-b flex items-center justify-between px-6 shrink-0 z-20 ${isDarkMode ? 'border-[#1C212D] bg-[#0B0E14]' : 'border-gray-200 bg-white'}`}>
+        <header className={`h-20 border-b flex items-center justify-between px-6 shrink-0 z-20 print-hidden ${isDarkMode ? 'border-[#1C212D] bg-[#0B0E14]' : 'border-gray-200 bg-white'}`}>
            {/* Search Box with Real Stock Live Dropdown */}
            <div className="relative">
              <div className={`flex items-center rounded-lg px-4 py-2.5 w-[360px] md:w-[420px] border focus-within:border-[#00E6A8]/50 transition-colors ${isDarkMode ? 'bg-[#131722] border-[#1C212D]' : 'bg-gray-100 border-gray-200'}`}>
@@ -225,7 +225,7 @@ export const AppLayout = ({ children }) => {
         </header>
 
         {/* PAGE CONTENT */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar relative">
+        <div className="flex-1 overflow-y-auto custom-scrollbar relative print:overflow-visible">
             {children}
         </div>
       </div>

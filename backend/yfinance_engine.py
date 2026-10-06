@@ -291,79 +291,56 @@ class YFinanceEngine:
                 results.append(q)
             return results
 
-        # 3. Multi-symbol batch lookup: fetch all in ONE request
-        sym_map = {}
-        yf_syms = []
-        for s in missing_symbols:
+        # 3. Multi-symbol batch lookup using ThreadPoolExecutor for fast_info
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        
+        def fetch_single(s):
             yf_s = self._get_yf_symbol(s)
-            sym_map[yf_s] = s
-            yf_syms.append(yf_s)
+            raw = self._get_fast_quote(yf_s)
+            if raw is None:
+                raw = self._get_daily_fallback_quote(yf_s)
+            if raw is None:
+                raw = self._get_intraday_quote(yf_s)
+
+            if raw and raw['price'] > 0:
+                price = round(raw['price'], 2)
+                prev = raw.get('prev_close') or price
+                chg = round(((price - prev) / prev) * 100.0, 2) if prev > 0 else 0.0
+                o = raw.get('open', price)
+                h = raw.get('high', price)
+                l = raw.get('low', price)
+                v = raw.get('volume', 0)
+                q = {
+                    'symbol': s,
+                    'price': price,
+                    'prev_close': round(prev, 2),
+                    'open': round(o, 2),
+                    'high': round(h, 2),
+                    'low': round(l, 2),
+                    'day_high': round(h, 2),
+                    'day_low': round(l, 2),
+                    'volume': v,
+                    'range': f"₹{l:.2f} - ₹{h:.2f}",
+                    'change_pct': chg,
+                    'high_52w': raw.get('high_52w'),
+                    'low_52w': raw.get('low_52w'),
+                    'source': self.source,
+                    'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                }
+                return s, q
+            return s, None
 
         try:
-            df = self._safe_yf_download(yf_syms, period="5d", interval="1d", timeout=15.0)
-            if df is not None and not df.empty:
-                if isinstance(df.columns, pd.MultiIndex):
-                    close_df = df.get('Close')
-                    open_df = df.get('Open')
-                    high_df = df.get('High')
-                    low_df = df.get('Low')
-                    vol_df = df.get('Volume')
-                else:
-                    close_df = df[['Close']] if 'Close' in df.columns else None
-                    open_df = df[['Open']] if 'Open' in df.columns else None
-                    high_df = df[['High']] if 'High' in df.columns else None
-                    low_df = df[['Low']] if 'Low' in df.columns else None
-                    vol_df = df[['Volume']] if 'Volume' in df.columns else None
-                    if close_df is not None and len(yf_syms) == 1:
-                        close_df.columns = [yf_syms[0]]
-                        if open_df is not None: open_df.columns = [yf_syms[0]]
-                        if high_df is not None: high_df.columns = [yf_syms[0]]
-                        if low_df is not None: low_df.columns = [yf_syms[0]]
-                        if vol_df is not None: vol_df.columns = [yf_syms[0]]
-
-                if close_df is not None and not close_df.empty:
-                    for yf_s, orig_s in sym_map.items():
-                        if yf_s in close_df.columns:
-                            series = close_df[yf_s].dropna()
-                            if len(series) >= 1:
-                                curr = float(series.iloc[-1].item() if hasattr(series.iloc[-1], 'item') else series.iloc[-1])
-                                prev = float(series.iloc[-2].item() if hasattr(series.iloc[-2], 'item') else series.iloc[-2]) if len(series) >= 2 else curr
-                                chg = round(((curr - prev) / prev) * 100.0, 2) if prev > 0 else 0.0
-                                
-                                o = curr
-                                h = max(curr, prev)
-                                l = min(curr, prev)
-                                v = 0
-                                if open_df is not None and yf_s in open_df.columns:
-                                    s_open = open_df[yf_s].dropna()
-                                    if len(s_open) > 0: o = float(s_open.iloc[-1])
-                                if high_df is not None and yf_s in high_df.columns:
-                                    s_high = high_df[yf_s].dropna()
-                                    if len(s_high) > 0: h = float(s_high.iloc[-1])
-                                if low_df is not None and yf_s in low_df.columns:
-                                    s_low = low_df[yf_s].dropna()
-                                    if len(s_low) > 0: l = float(s_low.iloc[-1])
-                                if vol_df is not None and yf_s in vol_df.columns:
-                                    s_vol = vol_df[yf_s].dropna()
-                                    if len(s_vol) > 0: v = int(s_vol.iloc[-1])
-
-                                q = {
-                                    'symbol': orig_s,
-                                    'price': round(curr, 2),
-                                    'prev_close': round(prev, 2),
-                                    'open': round(o, 2),
-                                    'high': round(h, 2),
-                                    'low': round(l, 2),
-                                    'day_high': round(h, 2),
-                                    'day_low': round(l, 2),
-                                    'volume': v,
-                                    'range': f"₹{l:.2f} - ₹{h:.2f}",
-                                    'change_pct': chg,
-                                    'source': self.source,
-                                    'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                                }
-                                self._individual_quote_cache[orig_s] = (q, now_ts)
-                                results.append(q)
+            with ThreadPoolExecutor(max_workers=10) as executor:
+                future_to_sym = {executor.submit(fetch_single, s): s for s in missing_symbols}
+                for future in as_completed(future_to_sym):
+                    try:
+                        s, q = future.result()
+                        if q:
+                            self._individual_quote_cache[s] = (q, now_ts)
+                            results.append(q)
+                    except Exception as e:
+                        print(f"[YFinanceEngine] Error fetching single quote for {future_to_sym[future]}: {e}")
         except Exception as e:
             print(f"[YFinanceEngine] Batch download exception: {e}")
 

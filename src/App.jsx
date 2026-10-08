@@ -55,8 +55,6 @@ const FooterRenderer = () => {
           </span>
         </div>
         <div className="flex items-center space-x-3 text-gray-500 font-mono text-[11px]">
-          <span>Team Hessonite</span>
-          <span>·</span>
           <span>Spec v6.0</span>
           <span>·</span>
           <span>NSE / BSE</span>

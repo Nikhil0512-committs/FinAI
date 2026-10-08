@@ -759,7 +759,7 @@ export const BehavioralScorecard = () => {
         {/* FOOTER */}
         <footer className="pt-8 border-t border-gray-900 flex flex-col md:flex-row items-center justify-between text-[9px] font-mono text-gray-600 uppercase tracking-widest">
           <div>◉ FinAI &middot; Educational Paper-Trading Platform &middot; Zero Real Capital At Risk</div>
-          <div className="mt-2 md:mt-0">TEAM HESSONITE &middot; SPEC V6.0 &middot; SEBI REGULATOR-SAFE</div>
+          <div className="mt-2 md:mt-0">SPEC V6.0 &middot; SEBI REGULATOR-SAFE</div>
         </footer>
 
       </div>

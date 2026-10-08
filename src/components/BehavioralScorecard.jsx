@@ -125,7 +125,15 @@ export const BehavioralScorecard = () => {
     win_hold_mins: profileData?.metrics?.win_hold_mins ?? 0,
     loss_hold_mins: profileData?.metrics?.loss_hold_mins ?? 0,
     market_orders_pct: profileData?.metrics?.market_orders_pct ?? 100,
-    limit_orders_pct: profileData?.metrics?.limit_orders_pct ?? 0
+    limit_orders_pct: profileData?.metrics?.limit_orders_pct ?? 0,
+    rrr: profileData?.metrics?.rrr ?? 1.0,
+    win_rate: profileData?.metrics?.win_rate ?? 0.0,
+    fomo_cost: profileData?.metrics?.fomo_cost ?? 0.0,
+    tod_metrics: profileData?.metrics?.tod_metrics ?? {
+      'Morning': {win_rate: 0, pnl: 0},
+      'Mid-day': {win_rate: 0, pnl: 0},
+      'Afternoon': {win_rate: 0, pnl: 0}
+    }
   };
 
   const disciplineScore = profileData?.discipline_score || 0;
@@ -662,9 +670,107 @@ export const BehavioralScorecard = () => {
 
         </section>
 
-        {/* ─── 5. TRADER COACHING BRIEF & FINAI ANALYSIS ─── */}
+        {/* ─── 06. EDUCATIONAL CLINIC ─── */}
+        <section className="break-inside-avoid mt-16 mb-8 border border-gray-900 bg-gray-900/40 p-1">
+          <div className="bg-[#050811] p-10 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-cyan-500 via-emerald-500 to-amber-500" />
+            
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12 border-b border-gray-900 pb-8">
+              <div>
+                <div className="text-[10px] font-mono text-cyan-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" /> FinAI Coaching Clinic
+                </div>
+                <h2 className="text-3xl font-light font-mono text-white tracking-tight uppercase">The Math Behind Your Psychology</h2>
+                <p className="text-[11px] font-sans text-gray-400 max-w-2xl mt-3 leading-relaxed">
+                  We don't just track bad habits—we quantify their exact cost. See how FOMO, midday chop, and Risk/Reward ratios mathematically dictate your profitability.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              
+              {/* Feature 1: FOMO Cost */}
+              <div className="bg-[#020308] border border-gray-900 p-6 flex flex-col justify-between">
+                <div>
+                  <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-2">Cost of Impatience</div>
+                  <h3 className="text-xl font-mono text-white mb-4 uppercase">Overbought FOMO</h3>
+                  <div className="text-[11px] text-gray-400 font-sans leading-relaxed mb-6">
+                    Chasing green candles (buying when RSI > 70) almost guarantees buying the top before a pullback.
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="flex justify-between items-end border-b border-gray-900 pb-2">
+                    <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Actual Loss Due to FOMO</span>
+                    <span className="text-2xl font-mono text-rose-400 tabular-nums">-₹{metrics.fomo_cost.toLocaleString('en-IN', {maximumFractionDigits: 0})}</span>
+                  </div>
+                  <div className="flex justify-between items-end">
+                    <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Saved if delayed entry</span>
+                    <span className="text-xl font-mono text-emerald-400 tabular-nums">+₹{(metrics.fomo_cost).toLocaleString('en-IN', {maximumFractionDigits: 0})}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Feature 2: TOD Heatmap */}
+              <div className="bg-[#020308] border border-gray-900 p-6 flex flex-col justify-between">
+                <div>
+                  <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-2">Session Heatmap</div>
+                  <h3 className="text-xl font-mono text-white mb-4 uppercase">Midday Chop Drain</h3>
+                  <div className="text-[11px] text-gray-400 font-sans leading-relaxed mb-6">
+                    Retail traders often make money in the volatile morning, then lose it overtrading the low-volume midday chop.
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {['Morning', 'Mid-day', 'Afternoon'].map(session => (
+                    <div key={session} className="bg-gray-900/50 p-2 text-center border border-gray-900">
+                      <div className="text-[9px] font-mono text-gray-500 uppercase tracking-tighter mb-2">{session}</div>
+                      <div className={`text-sm font-mono font-bold ${metrics.tod_metrics[session]?.win_rate >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {metrics.tod_metrics[session]?.win_rate?.toFixed(0)}% WR
+                      </div>
+                      <div className={`text-[9px] font-mono mt-1 ${metrics.tod_metrics[session]?.pnl >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                        {metrics.tod_metrics[session]?.pnl >= 0 ? '+' : ''}{metrics.tod_metrics[session]?.pnl?.toLocaleString('en-IN', {maximumFractionDigits: 0})}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Feature 3: RRR Visualizer */}
+              <div className="bg-[#020308] border border-gray-900 p-6 flex flex-col justify-between">
+                <div>
+                  <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-2">Breakeven Math</div>
+                  <h3 className="text-xl font-mono text-white mb-4 uppercase">Risk / Reward Ratio</h3>
+                  <div className="text-[11px] text-gray-400 font-sans leading-relaxed mb-6">
+                    At a {metrics.win_rate}% win rate, you mathematically require an RRR of at least 1:{Math.max(1.0, ((100 - metrics.win_rate)/(metrics.win_rate || 1))).toFixed(1)} just to break even.
+                  </div>
+                </div>
+
+                <div className="space-y-5">
+                  <div className="flex justify-between items-center text-[10px] font-mono uppercase tracking-widest">
+                    <span className="text-gray-500">Your Current RRR</span>
+                    <span className={metrics.rrr >= 2.0 ? 'text-emerald-400' : 'text-amber-400'}>1:{metrics.rrr.toFixed(1)}</span>
+                  </div>
+                  
+                  <div className="h-2 w-full bg-gray-900 rounded-full overflow-hidden flex">
+                    <div className="h-full bg-rose-500" style={{ width: '33%' }} />
+                    <div className={`h-full border-l border-gray-950 ${metrics.rrr >= 2.0 ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${Math.min(67, metrics.rrr * 20)}%` }} />
+                  </div>
+                  
+                  <div className="flex justify-between text-[9px] font-mono text-gray-600">
+                    <span>1:1 (Losing Math)</span>
+                    <span className="text-emerald-500">1:2+ (Winning Math)</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+        {/* ─── 7. TRADER COACHING BRIEF & FINAI ANALYSIS ─── */}
         <section className="break-inside-avoid bg-[#050811] border border-gray-900 p-10">
-          <div className="text-[10px] font-mono text-cyan-500 uppercase tracking-widest mb-8">06 &middot; FinAI Behavioral Analysis & Disciplined Principles</div>
+          <div className="text-[10px] font-mono text-cyan-500 uppercase tracking-widest mb-8">07 &middot; FinAI Behavioral Analysis & Disciplined Principles</div>
           
           {/* AI Insights Narrative */}
           <div className="mb-10 p-6 bg-cyan-950/10 border border-cyan-900/30">
@@ -738,10 +844,10 @@ export const BehavioralScorecard = () => {
           </div>
         </section>
 
-        {/* ─── 6. BEHAVIORAL AUDIT TERMINAL ─── */}
+        {/* ─── 8. BEHAVIORAL AUDIT TERMINAL ─── */}
         <section>
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-[10px] font-mono text-gray-600 uppercase tracking-widest">07 &middot; Recent Trade History</h2>
+            <h2 className="text-[10px] font-mono text-gray-600 uppercase tracking-widest">08 &middot; Recent Trade History</h2>
             <div className="text-[9px] font-mono text-gray-500 uppercase tracking-widest">{tradesAnalyzed} TRADES ANALYZED</div>
           </div>
 

@@ -558,6 +558,9 @@ class BehavioralEngine:
         market_pct = (market_orders / total_count) * 100 if total_count > 0 else 100.0
         limit_pct = 100.0 - market_pct
 
+        overall_win_rate = len(win_pnls) / total_count * 100.0 if total_count > 0 else 0.0
+        fomo_cost = sum(abs(float(t.get('pnl') or 0.0)) for t in sorted_trades if float(t.get('pnl') or 0.0) < 0 and float(t.get('rsi_14') or 50.0) > 70)
+
         return {
             'profile_unlocked': True,
             'trade_count': total_count,
@@ -575,7 +578,11 @@ class BehavioralEngine:
                 'win_hold_mins': round(avg_win_hold, 1),
                 'loss_hold_mins': round(avg_loss_hold, 1),
                 'market_orders_pct': round(market_pct, 1),
-                'limit_orders_pct': round(limit_pct, 1)
+                'limit_orders_pct': round(limit_pct, 1),
+                'rrr': round(rrr, 2),
+                'win_rate': round(overall_win_rate, 1),
+                'fomo_cost': round(fomo_cost, 2),
+                'tod_metrics': tod_metrics
             },
             'insights': insights,
             'layman_brief': layman_brief,

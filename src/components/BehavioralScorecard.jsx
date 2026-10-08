@@ -728,8 +728,8 @@ export const BehavioralScorecard = () => {
                       <div className={`text-sm font-mono font-bold ${metrics.tod_metrics[session]?.win_rate >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>
                         {metrics.tod_metrics[session]?.win_rate?.toFixed(0)}% WR
                       </div>
-                      <div className={`text-[9px] font-mono mt-1 ${metrics.tod_metrics[session]?.pnl >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                        {metrics.tod_metrics[session]?.pnl >= 0 ? '+' : ''}{metrics.tod_metrics[session]?.pnl?.toLocaleString('en-IN', {maximumFractionDigits: 0})}
+                      <div className={`text-[9px] font-mono mt-1 ${metrics.tod_metrics[session]?.pnl > 0 ? 'text-emerald-500' : metrics.tod_metrics[session]?.pnl < 0 ? 'text-rose-500' : 'text-gray-500'}`}>
+                        {metrics.tod_metrics[session]?.pnl > 0 ? '+₹' : metrics.tod_metrics[session]?.pnl < 0 ? '-₹' : '₹'}{Math.abs(metrics.tod_metrics[session]?.pnl || 0).toLocaleString('en-IN', {maximumFractionDigits: 0})}
                       </div>
                     </div>
                   ))}

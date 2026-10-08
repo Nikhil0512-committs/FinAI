@@ -4,13 +4,13 @@ import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { 
-
   ResponsiveContainer, 
   RadarChart, 
   PolarGrid, 
   PolarAngleAxis, 
   PolarRadiusAxis, 
-  Radar
+  Radar,
+  Tooltip
 } from 'recharts';
 import { 
 

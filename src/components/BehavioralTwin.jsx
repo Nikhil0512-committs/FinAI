@@ -112,7 +112,6 @@ export const BehavioralTwin = () => {
     };
 
     return (
-    return (
       <div className="border border-gray-900 bg-[#020308] flex flex-col relative overflow-hidden h-full">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-cyan-900/10 via-[#020308]/0 to-[#020308]/0 pointer-events-none" />
         

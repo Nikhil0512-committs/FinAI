@@ -554,6 +554,10 @@ class BehavioralEngine:
             
         layman_brief += " ".join(layman_points)
 
+        market_orders = sum(1 for t in sorted_trades if str(t.get('order_type', 'MARKET')).upper() == 'MARKET')
+        market_pct = (market_orders / total_count) * 100 if total_count > 0 else 100.0
+        limit_pct = 100.0 - market_pct
+
         return {
             'profile_unlocked': True,
             'trade_count': total_count,
@@ -569,7 +573,9 @@ class BehavioralEngine:
                 'avg_loss_gap_mins': round(avg_loss_gap, 1),
                 'loss_size_ratio': round(size_escalation_ratio, 2),
                 'win_hold_mins': round(avg_win_hold, 1),
-                'loss_hold_mins': round(avg_loss_hold, 1)
+                'loss_hold_mins': round(avg_loss_hold, 1),
+                'market_orders_pct': round(market_pct, 1),
+                'limit_orders_pct': round(limit_pct, 1)
             },
             'insights': insights,
             'layman_brief': layman_brief,

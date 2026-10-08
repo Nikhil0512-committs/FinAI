@@ -123,7 +123,9 @@ export const BehavioralScorecard = () => {
     avg_loss_gap_mins: profileData?.metrics?.avg_loss_gap_mins ?? 0,
     loss_size_ratio: profileData?.metrics?.loss_size_ratio ?? 1.0,
     win_hold_mins: profileData?.metrics?.win_hold_mins ?? 0,
-    loss_hold_mins: profileData?.metrics?.loss_hold_mins ?? 0
+    loss_hold_mins: profileData?.metrics?.loss_hold_mins ?? 0,
+    market_orders_pct: profileData?.metrics?.market_orders_pct ?? 100,
+    limit_orders_pct: profileData?.metrics?.limit_orders_pct ?? 0
   };
 
   const disciplineScore = profileData?.discipline_score || 0;
@@ -385,7 +387,9 @@ export const BehavioralScorecard = () => {
                   <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-1">Cool-Down Period After Loss</div>
                   <div className="text-3xl font-mono text-white tabular-nums tracking-tight">{Number(metrics.avg_loss_gap_mins || 0).toFixed(1)}m</div>
                 </div>
-                <div className="text-[9px] font-mono text-emerald-400 bg-emerald-950/20 px-2 py-0.5 border border-emerald-900/50 uppercase tracking-widest">✓ Optimal</div>
+                <div className={`text-[9px] font-mono px-2 py-0.5 border uppercase tracking-widest ${metrics.avg_loss_gap_mins >= 20 ? 'text-emerald-400 bg-emerald-950/20 border-emerald-900/50' : 'text-amber-400 bg-amber-950/20 border-amber-900/50'}`}>
+                  {metrics.avg_loss_gap_mins >= 20 ? '✓ Optimal' : '⚠ Warning'}
+                </div>
               </div>
               
               <div className="relative pt-6 pb-2">
@@ -408,7 +412,9 @@ export const BehavioralScorecard = () => {
                   <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-1">Risking Too Much After Loss</div>
                   <div className="text-3xl font-mono text-white tabular-nums tracking-tight">{Number(metrics.loss_size_ratio || 1.0).toFixed(2)}x</div>
                 </div>
-                <div className="text-[9px] font-mono text-cyan-400 bg-cyan-950/20 px-2 py-0.5 border border-cyan-900/50 uppercase tracking-widest">Controlled</div>
+                <div className={`text-[9px] font-mono px-2 py-0.5 border uppercase tracking-widest ${metrics.loss_size_ratio > 1.2 ? 'text-amber-400 bg-amber-950/20 border-amber-900/50' : 'text-cyan-400 bg-cyan-950/20 border-cyan-900/50'}`}>
+                  {metrics.loss_size_ratio > 1.2 ? '⚠ Escalated' : '✓ Controlled'}
+                </div>
               </div>
               
               <div className="relative pt-6 pb-2">
@@ -431,7 +437,9 @@ export const BehavioralScorecard = () => {
                   <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-1">Holding Winners vs Losers</div>
                   <div className="text-3xl font-mono text-white tabular-nums tracking-tight">{Number(metrics.win_hold_mins || 0).toFixed(1)}m <span className="text-xl text-gray-600">/ {Number(metrics.loss_hold_mins || 0).toFixed(1)}m</span></div>
                 </div>
-                <div className="text-[9px] font-mono text-emerald-400 uppercase tracking-widest">+{Number((metrics.win_hold_mins || 0) - (metrics.loss_hold_mins || 0)).toFixed(1)}m Gap</div>
+                <div className={`text-[9px] font-mono uppercase tracking-widest ${metrics.win_hold_mins >= metrics.loss_hold_mins ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {metrics.win_hold_mins >= metrics.loss_hold_mins ? '+' : ''}{Number((metrics.win_hold_mins || 0) - (metrics.loss_hold_mins || 0)).toFixed(1)}m Gap
+                </div>
               </div>
               
               <div className="space-y-4">
@@ -451,19 +459,31 @@ export const BehavioralScorecard = () => {
               <div className="flex justify-between items-start mb-10">
                 <div>
                   <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-1">Order Type Preference</div>
-                  <div className="text-3xl font-mono text-white uppercase tracking-tight">Market</div>
+                  <div className="text-3xl font-mono text-white uppercase tracking-tight">
+                    {metrics.market_orders_pct > 50 ? 'Market' : 'Limit'}
+                  </div>
                 </div>
-                <div className="text-[9px] font-mono text-amber-400 bg-amber-950/20 px-2 py-0.5 border border-amber-900/50 uppercase tracking-widest">⚠ Elev Risk</div>
+                <div className={`text-[9px] font-mono px-2 py-0.5 border uppercase tracking-widest ${metrics.market_orders_pct > 50 ? 'text-amber-400 bg-amber-950/20 border-amber-900/50' : 'text-emerald-400 bg-emerald-950/20 border-emerald-900/50'}`}>
+                  {metrics.market_orders_pct > 50 ? '⚠ Elev Risk' : '✓ Optimal'}
+                </div>
               </div>
               
               <div className="space-y-4">
                 <div>
-                  <div className="text-[9px] font-mono text-amber-400 uppercase tracking-widest mb-1 flex justify-between"><span>Market Orders</span><span>85%</span></div>
-                  <div className="h-1.5 w-full bg-gray-900"><div className="h-full bg-amber-500 w-[85%]" /></div>
+                  <div className={`text-[9px] font-mono uppercase tracking-widest mb-1 flex justify-between ${metrics.market_orders_pct > 50 ? 'text-amber-400' : 'text-gray-500'}`}>
+                    <span>Market Orders</span><span>{metrics.market_orders_pct}%</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-gray-900">
+                    <div className={`h-full ${metrics.market_orders_pct > 50 ? 'bg-amber-500' : 'bg-gray-600'}`} style={{ width: `${metrics.market_orders_pct}%` }} />
+                  </div>
                 </div>
                 <div>
-                  <div className="text-[9px] font-mono text-gray-500 uppercase tracking-widest mb-1 flex justify-between"><span>Limit Recommended</span><span>15%</span></div>
-                  <div className="h-1.5 w-full bg-gray-900"><div className="h-full bg-gray-600 w-[15%]" /></div>
+                  <div className={`text-[9px] font-mono uppercase tracking-widest mb-1 flex justify-between ${metrics.limit_orders_pct >= 50 ? 'text-emerald-400' : 'text-gray-500'}`}>
+                    <span>Limit Recommended</span><span>{metrics.limit_orders_pct}%</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-gray-900">
+                    <div className={`h-full ${metrics.limit_orders_pct >= 50 ? 'bg-emerald-500' : 'bg-gray-600'}`} style={{ width: `${metrics.limit_orders_pct}%` }} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -594,10 +614,34 @@ export const BehavioralScorecard = () => {
             
             <div className="space-y-6">
               {[
-                { label: 'Time Between Trades After Loss', val: `${metrics.avg_loss_gap_mins}m`, sub: 'Target > 20m', status: 'OPTIMAL', color: 'emerald' },
-                { label: 'Increasing Trade Size', val: `${metrics.loss_size_ratio}x`, sub: 'Baseline 1.00x', status: 'CONTROLLED', color: 'cyan' },
-                { label: 'Time Holding Winners vs Losers', val: `${metrics.win_hold_mins}/${metrics.loss_hold_mins}`, sub: '+3.7m advantage', status: 'OPTIMAL', color: 'emerald' },
-                { label: 'Order Type Preference', val: 'MARKET', sub: 'Limit Preferred', status: 'WARNING', color: 'amber' },
+                { 
+                  label: 'Time Between Trades After Loss', 
+                  val: `${metrics.avg_loss_gap_mins}m`, 
+                  sub: 'Target > 20m', 
+                  status: metrics.avg_loss_gap_mins >= 20 ? 'OPTIMAL' : 'WARNING', 
+                  color: metrics.avg_loss_gap_mins >= 20 ? 'emerald' : 'amber' 
+                },
+                { 
+                  label: 'Increasing Trade Size', 
+                  val: `${metrics.loss_size_ratio}x`, 
+                  sub: 'Baseline 1.00x', 
+                  status: metrics.loss_size_ratio > 1.2 ? 'WARNING' : 'CONTROLLED', 
+                  color: metrics.loss_size_ratio > 1.2 ? 'amber' : 'cyan' 
+                },
+                { 
+                  label: 'Time Holding Winners vs Losers', 
+                  val: `${metrics.win_hold_mins}m / ${metrics.loss_hold_mins}m`, 
+                  sub: metrics.win_hold_mins >= metrics.loss_hold_mins ? 'Favorable gap' : 'Holding losers too long', 
+                  status: metrics.win_hold_mins >= metrics.loss_hold_mins ? 'OPTIMAL' : 'WARNING', 
+                  color: metrics.win_hold_mins >= metrics.loss_hold_mins ? 'emerald' : 'amber' 
+                },
+                { 
+                  label: 'Order Type Preference', 
+                  val: metrics.market_orders_pct > 50 ? 'MARKET' : 'LIMIT', 
+                  sub: 'Limit Preferred', 
+                  status: metrics.market_orders_pct > 50 ? 'WARNING' : 'OPTIMAL', 
+                  color: metrics.market_orders_pct > 50 ? 'amber' : 'emerald' 
+                },
               ].map(item => (
                 <div key={item.label} className="flex items-center justify-between border-b border-gray-900 pb-4">
                   <div>

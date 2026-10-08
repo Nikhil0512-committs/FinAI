@@ -112,7 +112,8 @@ export const BehavioralTwin = () => {
     };
 
     return (
-      <div className="border border-gray-900 bg-[#020308] flex flex-col h-full relative overflow-hidden">
+    return (
+      <div className="border border-gray-900 bg-[#020308] flex flex-col relative overflow-hidden h-full">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-cyan-900/10 via-[#020308]/0 to-[#020308]/0 pointer-events-none" />
         
         {/* Render Rich Legacy Layout */}
@@ -135,41 +136,43 @@ export const BehavioralTwin = () => {
             </p>
           </div>
           
-          <div className="flex items-start gap-6 w-full xl:w-auto overflow-x-auto pb-2 xl:pb-0 relative">
+          <div className="flex flex-col items-end">
             <button 
               onClick={() => setShowLegacy(false)}
-              className="hidden xl:flex absolute -top-4 right-0 text-[10px] border border-gray-700 bg-[#050812] text-gray-300 px-4 py-2 uppercase tracking-widest hover:bg-gray-800 hover:text-white transition-all items-center gap-2 z-20"
+              className="hidden xl:flex mb-6 text-[10px] border border-gray-700 bg-[#050812] text-gray-300 px-4 py-2 uppercase tracking-widest hover:bg-gray-800 hover:text-white transition-all items-center gap-2 z-20"
             >
               <Activity className="w-3 h-3" /> Back to Intraday
             </button>
-            
-            <div className="bg-[#050812] border border-gray-800 p-5 min-w-[160px] flex flex-col justify-between group hover:border-emerald-900/50 transition-colors mt-8 xl:mt-10">
-              <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-1 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> Potential Gain
+
+            <div className="flex items-start gap-6 w-full xl:w-auto overflow-x-auto pb-2 xl:pb-0">
+              <div className="bg-[#050812] border border-gray-800 p-5 min-w-[160px] flex flex-col justify-between group hover:border-emerald-900/50 transition-colors">
+                <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-1 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> Potential Gain
+                </div>
+                <div className="text-3xl font-light font-mono text-emerald-400 mt-2 group-hover:drop-shadow-[0_0_8px_rgba(52,211,153,0.5)] transition-all">
+                  +₹{savings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                </div>
               </div>
-              <div className="text-3xl font-light font-mono text-emerald-400 mt-2 group-hover:drop-shadow-[0_0_8px_rgba(52,211,153,0.5)] transition-all">
-                +₹{savings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-              </div>
+              
+              {metrics && (
+                <>
+                  <div className="bg-[#050812] border border-gray-800 p-5 min-w-[140px] flex flex-col justify-between">
+                    <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-1">Revenge Freq</div>
+                    <div className="text-2xl font-light font-mono text-rose-400 mt-2">{metrics.revenge_freq_pct}%</div>
+                  </div>
+                  <div className="bg-[#050812] border border-gray-800 p-5 min-w-[140px] flex flex-col justify-between">
+                    <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-1">Size Escalation</div>
+                    <div className="text-2xl font-light font-mono text-amber-400 mt-2">{metrics.escalation_freq_pct}%</div>
+                  </div>
+                </>
+              )}
             </div>
-            
-            {metrics && (
-              <>
-                <div className="bg-[#050812] border border-gray-800 p-5 min-w-[140px] flex flex-col justify-between mt-8 xl:mt-10">
-                  <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-1">Revenge Freq</div>
-                  <div className="text-2xl font-light font-mono text-rose-400 mt-2">{metrics.revenge_freq_pct}%</div>
-                </div>
-                <div className="bg-[#050812] border border-gray-800 p-5 min-w-[140px] flex flex-col justify-between mt-8 xl:mt-10">
-                  <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-1">Size Escalation</div>
-                  <div className="text-2xl font-light font-mono text-amber-400 mt-2">{metrics.escalation_freq_pct}%</div>
-                </div>
-              </>
-            )}
           </div>
         </div>
         
-        <div className="flex-1 p-6 md:p-8 relative flex flex-col min-h-[400px]">
+        <div className="flex-1 p-6 md:p-8 relative">
           {/* Chart Header / Legend */}
-          <div className="flex flex-wrap items-center gap-8 mb-8 shrink-0">
+          <div className="flex flex-wrap items-center gap-8 mb-8">
             <div className="flex items-center gap-3">
               <div className="w-8 h-1 bg-gradient-to-r from-emerald-500 to-emerald-400" />
               <span className="text-[11px] font-mono text-gray-300 uppercase tracking-widest">Disciplined Path</span>
@@ -183,26 +186,28 @@ export const BehavioralTwin = () => {
             </div>
           </div>
           
-          <div className="w-full flex-1 min-h-[300px]"><ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={projection_data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-              <defs>
-                <linearGradient id="colorDisciplined" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                </linearGradient>
-                <linearGradient id="colorCurrent" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#e11d48" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#e11d48" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="1 5" stroke="#1e293b" vertical={false} />
-              <XAxis dataKey="day" stroke="#475569" tick={{ fontSize: 9, fontFamily: 'monospace', fill: '#64748b' }} axisLine={false} tickLine={false} dy={10} />
-              <YAxis domain={['auto', 'auto']} stroke="#475569" tick={{ fontSize: 9, fontFamily: 'monospace', fill: '#64748b' }} axisLine={false} tickLine={false} tickFormatter={(val) => `₹${val.toLocaleString('en-IN')}`} dx={-10} />
-              <Tooltip content={<CustomProjTooltip />} cursor={{ stroke: '#334155', strokeWidth: 1, strokeDasharray: '4 4' }} />
-              <Area type="monotone" dataKey="current_you" stroke="#e11d48" strokeWidth={2} fill="url(#colorCurrent)" activeDot={{ r: 6, fill: "#e11d48", stroke: "#020308", strokeWidth: 2 }} isAnimationActive={false} />
-              <Area type="monotone" dataKey="disciplined_you" stroke="#10b981" strokeWidth={2} fill="url(#colorDisciplined)" activeDot={{ r: 6, fill: "#10b981", stroke: "#020308", strokeWidth: 2 }} isAnimationActive={false} />
-            </AreaChart>
-          </ResponsiveContainer></div>
+          <div className="w-full h-[400px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={projection_data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorDisciplined" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorCurrent" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#e11d48" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#e11d48" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="1 5" stroke="#1e293b" vertical={false} />
+                <XAxis dataKey="day" stroke="#475569" tick={{ fontSize: 9, fontFamily: 'monospace', fill: '#64748b' }} axisLine={false} tickLine={false} dy={10} />
+                <YAxis domain={['auto', 'auto']} stroke="#475569" tick={{ fontSize: 9, fontFamily: 'monospace', fill: '#64748b' }} axisLine={false} tickLine={false} tickFormatter={(val) => `₹${val.toLocaleString('en-IN')}`} dx={-10} />
+                <Tooltip content={<CustomProjTooltip />} cursor={{ stroke: '#334155', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                <Area type="monotone" dataKey="current_you" stroke="#e11d48" strokeWidth={2} fill="url(#colorCurrent)" activeDot={{ r: 6, fill: "#e11d48", stroke: "#020308", strokeWidth: 2 }} isAnimationActive={false} />
+                <Area type="monotone" dataKey="disciplined_you" stroke="#10b981" strokeWidth={2} fill="url(#colorDisciplined)" activeDot={{ r: 6, fill: "#10b981", stroke: "#020308", strokeWidth: 2 }} isAnimationActive={false} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
     );

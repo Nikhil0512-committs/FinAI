@@ -76,10 +76,10 @@ export const AppLayout = ({ children }) => {
       <div className="flex-1 flex flex-col overflow-hidden relative print:overflow-visible">
         
         {/* TOP BAR */}
-        <header className={`h-20 border-b flex items-center justify-between px-6 shrink-0 z-20 print-hidden ${isDarkMode ? 'border-[#1C212D] bg-[#0B0E14]' : 'border-gray-200 bg-white'}`}>
+        <header className={`h-20 border-b flex items-center justify-between gap-4 md:gap-6 px-6 shrink-0 z-20 print-hidden ${isDarkMode ? 'border-[#1C212D] bg-[#0B0E14]' : 'border-gray-200 bg-white'}`}>
            {/* Search Box with Real Stock Live Dropdown */}
-           <div className="relative">
-             <div className={`flex items-center rounded-lg px-4 py-2.5 w-[360px] md:w-[420px] border focus-within:border-[#00E6A8]/50 transition-colors ${isDarkMode ? 'bg-[#131722] border-[#1C212D]' : 'bg-gray-100 border-gray-200'}`}>
+           <div className="relative flex-1 max-w-[420px] min-w-[200px]">
+             <div className={`flex items-center rounded-lg px-4 py-2.5 w-full border focus-within:border-[#00E6A8]/50 transition-colors ${isDarkMode ? 'bg-[#131722] border-[#1C212D]' : 'bg-gray-100 border-gray-200'}`}>
                  <Search className="text-gray-500 w-4 h-4 mr-3 shrink-0" />
                  <input 
                    type="text" 
@@ -136,8 +136,8 @@ export const AppLayout = ({ children }) => {
            </div>
            
            {/* Right side icons */}
-           <div className="flex items-center gap-8">
-               <div className={`flex items-center gap-8 border-r pr-8 ${isDarkMode ? 'border-[#1C212D]' : 'border-gray-200'}`}>
+           <div className="flex items-center gap-4 lg:gap-8 shrink-0">
+               <div className={`hidden md:flex items-center gap-4 lg:gap-8 border-r pr-4 lg:pr-8 ${isDarkMode ? 'border-[#1C212D]' : 'border-gray-200'}`}>
                   <div className="flex flex-col">
                      <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider mb-1">NIFTY</span>
                      <div className="flex items-center gap-2">

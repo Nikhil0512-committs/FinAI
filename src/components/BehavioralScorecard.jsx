@@ -130,13 +130,31 @@ export const BehavioralScorecard = () => {
   const archetype = profileData?.archetype || "Calibrating (Statistical Baseline Required)";
 
   const radarData = [
-    { subject: 'Discipline', A: disciplineScore, fullMark: 100 },
-    { subject: 'Revenge Avoid', A: metrics.revenge_avoidance, fullMark: 100 },
-    { subject: 'Size Control', A: metrics.position_control, fullMark: 100 },
-    { subject: 'Cooling-Off', A: metrics.cooling_off_ratio, fullMark: 100 },
-    { subject: 'Hold Balance', A: metrics.holding_balance, fullMark: 100 },
-    { subject: 'FOMO Resist', A: metrics.fomo_resistance, fullMark: 100 },
+    { subject: 'Discipline', A: disciplineScore, fullMark: 100, desc: 'Overall aggregate score of your emotional regulation and rule adherence.' },
+    { subject: 'Revenge Avoid', A: metrics.revenge_avoidance, fullMark: 100, desc: 'How successfully you avoid immediately re-entering the market to win back a loss.' },
+    { subject: 'Size Control', A: metrics.position_control, fullMark: 100, desc: 'Your ability to maintain consistent position sizing without improperly scaling up during drawdowns.' },
+    { subject: 'Cooling-Off', A: metrics.cooling_off_ratio, fullMark: 100, desc: 'Your consistency in taking mandatory breaks (cool-down periods) after closing losing trades.' },
+    { subject: 'Hold Balance', A: metrics.holding_balance, fullMark: 100, desc: 'Your ratio of holding winning trades to their full potential vs. cutting losing trades early.' },
+    { subject: 'FOMO Resist', A: metrics.fomo_resistance, fullMark: 100, desc: 'How effectively you avoid chasing explosive green candles or late entries on fast-moving stocks.' },
   ];
+
+  const CustomRadarTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-[#050812] border border-gray-800 p-4 shadow-2xl min-w-[220px] max-w-[280px]">
+          <div className="flex justify-between items-center border-b border-gray-800 pb-2 mb-3">
+            <p className="text-[10px] text-cyan-400 font-mono uppercase tracking-widest">{data.subject}</p>
+            <p className="text-[12px] text-white font-mono font-bold tabular-nums">{data.A}</p>
+          </div>
+          <p className="text-[10px] font-sans text-gray-400 leading-relaxed">
+            {data.desc}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
   
   const counterfactualSavings = profileData?.counterfactual_savings || 0;
 
@@ -561,9 +579,10 @@ export const BehavioralScorecard = () => {
                   <PolarGrid stroke="#1e293b" strokeWidth={0.5} />
                   <PolarAngleAxis dataKey="subject" stroke="#64748b" tick={{ fontSize: 9, fontFamily: 'monospace', fill: '#64748b' }} />
                   <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                  <Tooltip content={<CustomRadarTooltip />} cursor={{ fill: '#ffffff', opacity: 0.05 }} />
                   {/* Baseline mock */}
                   <Radar dataKey="fullMark" stroke="#1e293b" fill="transparent" strokeWidth={1} />
-                  <Radar name="Trader Profile" dataKey="A" stroke="#00D9FF" strokeWidth={1.5} fill="#00D9FF" fillOpacity={0.05} isAnimationActive={false} />
+                  <Radar name="Trader Profile" dataKey="A" stroke="#00D9FF" strokeWidth={1.5} fill="#00D9FF" fillOpacity={0.05} isAnimationActive={false} activeDot={{ r: 4, fill: "#00D9FF", stroke: "#00D9FF" }} />
                 </RadarChart>
               </ResponsiveContainer>
             </div>

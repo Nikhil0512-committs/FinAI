@@ -82,38 +82,117 @@ export const BehavioralTwin = () => {
 
   // --- LEGACY PROJECTION VIEW ---
   if (showLegacy && projectionData) {
-    const { projection_data, final_difference, metrics } = projectionData;
+    const { projection_data, final_difference, metrics, current_final, disciplined_final } = projectionData;
     const savings = Math.abs(final_difference);
+    
+    const CustomProjTooltip = ({ active, payload }) => {
+      if (active && payload && payload.length) {
+        const data = payload[0].payload;
+        return (
+          <div className="bg-[#050812] border border-gray-800 p-4 shadow-2xl min-w-[200px]">
+            <p className="text-[10px] text-gray-500 font-mono mb-3 uppercase tracking-widest border-b border-gray-800 pb-2">{data.day}</p>
+            <div className="space-y-3">
+              <div className="flex justify-between gap-6 text-[11px] font-mono">
+                <span className="text-emerald-400 flex items-center gap-2"><span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" /> Disciplined You</span>
+                <span className="text-emerald-400 font-bold">₹{data.disciplined_you.toLocaleString('en-IN')}</span>
+              </div>
+              <div className="flex justify-between gap-6 text-[11px] font-mono">
+                <span className="text-rose-400 flex items-center gap-2"><span className="w-1.5 h-1.5 bg-rose-400 rounded-full" /> Current Habits</span>
+                <span className="text-rose-400 font-bold">₹{data.current_you.toLocaleString('en-IN')}</span>
+              </div>
+              <div className="pt-2 mt-2 border-t border-gray-800 text-[10px] text-cyan-400 font-bold uppercase tracking-widest flex items-center justify-between">
+                <span>Gap</span>
+                <span>₹{Math.abs(data.disciplined_you - data.current_you).toLocaleString('en-IN')}</span>
+              </div>
+            </div>
+          </div>
+        );
+      }
+      return null;
+    };
+
     return (
-      <div className="border border-gray-900 bg-[#020308] flex flex-col h-full relative">
+      <div className="border border-gray-900 bg-[#020308] flex flex-col h-full relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-cyan-900/10 via-[#020308]/0 to-[#020308]/0 pointer-events-none" />
+        
         <button 
           onClick={() => setShowLegacy(false)}
-          className="absolute top-4 right-4 z-20 text-[10px] bg-gray-900 text-white px-3 py-1 uppercase tracking-widest hover:bg-gray-800 transition-colors"
+          className="absolute top-6 right-6 z-20 text-[10px] border border-gray-700 bg-[#050812] text-gray-300 px-4 py-2 uppercase tracking-widest hover:bg-gray-800 hover:text-white transition-all flex items-center gap-2"
         >
-          Back to Trade View
+          <Activity className="w-3 h-3" /> Back to Intraday
         </button>
         
-        {/* Render Legacy Layout (Condensed for brevity) */}
-        <div className="p-4 md:p-8 border-b border-gray-900 flex flex-col md:flex-row items-start justify-between gap-6">
+        {/* Render Rich Legacy Layout */}
+        <div className="p-6 md:p-10 border-b border-gray-900 flex flex-col xl:flex-row items-start justify-between gap-8 relative z-10 bg-black/20">
           <div>
-            <div className="text-[10px] font-mono text-cyan-500 uppercase tracking-widest mb-2 flex items-center gap-2">
-              <Activity className="w-3.5 h-3.5" /> Legacy Monte Carlo
+            <div className="text-[10px] font-mono text-cyan-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4" /> Monte Carlo Simulation
             </div>
-            <h2 className="text-xl md:text-2xl font-light font-mono text-white tracking-tight uppercase">30-Day Projection</h2>
+            <h2 className="text-3xl md:text-5xl font-light font-mono text-white tracking-tight uppercase mb-4">30-Day Trajectory</h2>
+            <p className="text-[11px] font-sans text-gray-400 max-w-lg leading-relaxed border-l-2 border-cyan-900/50 pl-3">
+              Projecting your current trading habits (including emotional leaks like revenge trading) versus a fully disciplined version of yourself over the next 30 days.
+            </p>
           </div>
-          <div className="text-left md:text-right">
-            <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-1">Projected Gap</div>
-            <div className="text-2xl md:text-3xl font-light font-mono text-cyan-400">₹{savings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div>
+          
+          <div className="flex gap-6 w-full xl:w-auto overflow-x-auto pb-2 xl:pb-0">
+            <div className="bg-[#050812] border border-gray-800 p-5 min-w-[160px] flex flex-col justify-between group hover:border-emerald-900/50 transition-colors">
+              <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-1 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> Potential Gain
+              </div>
+              <div className="text-3xl font-light font-mono text-emerald-400 mt-2 group-hover:drop-shadow-[0_0_8px_rgba(52,211,153,0.5)] transition-all">
+                +₹{savings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+              </div>
+            </div>
+            
+            {metrics && (
+              <>
+                <div className="bg-[#050812] border border-gray-800 p-5 min-w-[140px] flex flex-col justify-between">
+                  <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-1">Revenge Freq</div>
+                  <div className="text-2xl font-light font-mono text-rose-400 mt-2">{metrics.revenge_freq_pct}%</div>
+                </div>
+                <div className="bg-[#050812] border border-gray-800 p-5 min-w-[140px] flex flex-col justify-between">
+                  <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-1">Size Escalation</div>
+                  <div className="text-2xl font-light font-mono text-amber-400 mt-2">{metrics.escalation_freq_pct}%</div>
+                </div>
+              </>
+            )}
           </div>
         </div>
-        <div className="flex-1 p-4 sm:p-6 relative min-h-[300px]">
-          <div className="w-full h-[300px]"><ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={projection_data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="1 4" stroke="#0f172a" vertical={false} />
-              <XAxis dataKey="day" stroke="#334155" tick={{ fontSize: 9, fontFamily: 'monospace' }} />
-              <YAxis stroke="#334155" tick={{ fontSize: 9, fontFamily: 'monospace' }} tickFormatter={(val) => `₹${val}`} />
-              <Area type="monotone" dataKey="current_you" stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.1} />
-              <Area type="monotone" dataKey="disciplined_you" stroke="#10b981" fill="#10b981" fillOpacity={0.1} />
+        
+        <div className="flex-1 p-6 md:p-8 relative min-h-[400px]">
+          {/* Chart Header / Legend */}
+          <div className="flex flex-wrap items-center gap-8 mb-8">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-1 bg-gradient-to-r from-emerald-500 to-emerald-400" />
+              <span className="text-[11px] font-mono text-gray-300 uppercase tracking-widest">Disciplined Path</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-1 bg-gradient-to-r from-rose-600 to-rose-500" />
+              <span className="text-[11px] font-mono text-gray-400 uppercase tracking-widest">Current Habits</span>
+            </div>
+            <div className="ml-auto text-[10px] font-mono text-gray-600 uppercase tracking-widest bg-gray-900/50 px-3 py-1 border border-gray-800">
+              {projection_data.length} Steps Simulated
+            </div>
+          </div>
+          
+          <div className="w-full h-[calc(100%-3rem)]"><ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={projection_data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+              <defs>
+                <linearGradient id="colorDisciplined" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorCurrent" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#e11d48" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#e11d48" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="1 5" stroke="#1e293b" vertical={false} />
+              <XAxis dataKey="day" stroke="#475569" tick={{ fontSize: 9, fontFamily: 'monospace', fill: '#64748b' }} axisLine={false} tickLine={false} dy={10} />
+              <YAxis stroke="#475569" tick={{ fontSize: 9, fontFamily: 'monospace', fill: '#64748b' }} axisLine={false} tickLine={false} tickFormatter={(val) => `₹${val.toLocaleString('en-IN')}`} dx={-10} />
+              <Tooltip content={<CustomProjTooltip />} cursor={{ stroke: '#334155', strokeWidth: 1, strokeDasharray: '4 4' }} />
+              <Area type="monotone" dataKey="current_you" stroke="#e11d48" strokeWidth={2} fill="url(#colorCurrent)" activeDot={{ r: 6, fill: "#e11d48", stroke: "#020308", strokeWidth: 2 }} isAnimationActive={true} animationDuration={1500} />
+              <Area type="monotone" dataKey="disciplined_you" stroke="#10b981" strokeWidth={2} fill="url(#colorDisciplined)" activeDot={{ r: 6, fill: "#10b981", stroke: "#020308", strokeWidth: 2 }} isAnimationActive={true} animationDuration={1500} />
             </AreaChart>
           </ResponsiveContainer></div>
         </div>

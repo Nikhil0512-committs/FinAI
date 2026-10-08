@@ -702,11 +702,11 @@ export const BehavioralScorecard = () => {
                 <div className="space-y-4">
                   <div className="flex justify-between items-end border-b border-gray-900 pb-2">
                     <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Actual Loss Due to FOMO</span>
-                    <span className="text-2xl font-mono text-rose-400 tabular-nums">-₹{metrics.fomo_cost.toLocaleString('en-IN', {maximumFractionDigits: 0})}</span>
+                    <span className="text-2xl font-mono text-rose-400 tabular-nums">{metrics.fomo_cost > 0 ? '-' : ''}₹{metrics.fomo_cost.toLocaleString('en-IN', {maximumFractionDigits: 0})}</span>
                   </div>
                   <div className="flex justify-between items-end">
                     <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Saved if delayed entry</span>
-                    <span className="text-xl font-mono text-emerald-400 tabular-nums">+₹{(metrics.fomo_cost).toLocaleString('en-IN', {maximumFractionDigits: 0})}</span>
+                    <span className="text-xl font-mono text-emerald-400 tabular-nums">+{metrics.fomo_cost > 0 ? '₹' : '₹'}{(metrics.fomo_cost).toLocaleString('en-IN', {maximumFractionDigits: 0})}</span>
                   </div>
                 </div>
               </div>
@@ -749,17 +749,22 @@ export const BehavioralScorecard = () => {
                 <div className="space-y-5">
                   <div className="flex justify-between items-center text-[10px] font-mono uppercase tracking-widest">
                     <span className="text-gray-500">Your Current RRR</span>
-                    <span className={metrics.rrr >= 2.0 ? 'text-emerald-400' : 'text-amber-400'}>1:{metrics.rrr.toFixed(1)}</span>
+                    <span className={metrics.rrr >= Math.max(1.0, ((100 - metrics.win_rate)/(metrics.win_rate || 1))) ? 'text-emerald-400' : 'text-amber-400'}>1:{metrics.rrr.toFixed(1)}</span>
                   </div>
                   
-                  <div className="h-2 w-full bg-gray-900 rounded-full overflow-hidden flex">
-                    <div className="h-full bg-rose-500" style={{ width: '33%' }} />
-                    <div className={`h-full border-l border-gray-950 ${metrics.rrr >= 2.0 ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${Math.min(67, metrics.rrr * 20)}%` }} />
+                  <div className="h-2 w-full bg-gray-900 rounded-full overflow-hidden flex relative">
+                    {/* The baseline "Risk" representing 1 */}
+                    <div className="h-full bg-rose-500" style={{ width: '25%' }} />
+                    {/* The "Reward" representing RRR */}
+                    <div className={`h-full border-l border-gray-950 ${metrics.rrr >= Math.max(1.0, ((100 - metrics.win_rate)/(metrics.win_rate || 1))) ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${Math.min(75, (metrics.rrr / Math.max(1.0, ((100 - metrics.win_rate)/(metrics.win_rate || 1)))) * 75)}%` }} />
+                    
+                    {/* Marker for required RRR */}
+                    <div className="absolute top-0 bottom-0 border-l border-white/50 z-10" style={{ left: '100%' }} />
                   </div>
                   
                   <div className="flex justify-between text-[9px] font-mono text-gray-600">
-                    <span>1:1 (Losing Math)</span>
-                    <span className="text-emerald-500">1:2+ (Winning Math)</span>
+                    <span>1:1 (Losing)</span>
+                    <span className="text-emerald-500">1:{Math.ceil(Math.max(1.0, ((100 - metrics.win_rate)/(metrics.win_rate || 1))))}+ (Winning Math)</span>
                   </div>
                 </div>
               </div>

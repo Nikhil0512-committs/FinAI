@@ -39,6 +39,11 @@ export const TerminalPage = () => {
   const [orderSide, setOrderSide] = useState('BUY');
   const [orderType, setOrderType] = useState('MARKET');
   const [quantity, setQuantity] = useState(25);
+  const [limitPrice, setLimitPrice] = useState('');
+  const [triggerPrice, setTriggerPrice] = useState('');
+  const [isBracketOrder, setIsBracketOrder] = useState(false);
+  const [stopLoss, setStopLoss] = useState('');
+  const [takeProfit, setTakeProfit] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [activeTradeTab, setActiveTradeTab] = useState('Trade');
   const [bottomTab, setBottomTab] = useState('Positions');
@@ -111,7 +116,11 @@ export const TerminalPage = () => {
       symbol: selectedStock || 'ADANIENT',
       side: orderSide,
       quantity: parseInt(quantity),
-      price: activePrice,
+      price: (orderType === 'LIMIT' || orderType === 'SL') && limitPrice ? parseFloat(limitPrice) : activePrice,
+      limit_price: (orderType === 'LIMIT' || orderType === 'SL') && limitPrice ? parseFloat(limitPrice) : undefined,
+      trigger_price: (orderType === 'SL' || orderType === 'SL-M') && triggerPrice ? parseFloat(triggerPrice) : undefined,
+      stop_loss: isBracketOrder && stopLoss ? parseFloat(stopLoss) : undefined,
+      take_profit: isBracketOrder && takeProfit ? parseFloat(takeProfit) : undefined,
       sentiment_tag: 'Neutral',
       order_type: orderType,
     };
@@ -384,6 +393,36 @@ export const TerminalPage = () => {
                     </div>
                     
                     <div className="flex flex-col gap-5 mb-auto">
+                        {(orderType === 'LIMIT' || orderType === 'SL') && (
+                            <div>
+                                <label className="block text-[11px] text-gray-500 font-medium mb-2.5">Limit Price (₹)</label>
+                                <div className="flex items-center bg-[#0B0E14] rounded-xl border border-[#1C212D] focus-within:border-gray-600 transition-colors p-1.5">
+                                    <input 
+                                        type="number" 
+                                        value={limitPrice}
+                                        onChange={(e) => setLimitPrice(e.target.value)}
+                                        placeholder={activePrice ? activePrice.toFixed(2) : "0.00"}
+                                        className="bg-transparent w-full text-white px-3 py-2 outline-none text-lg font-medium"
+                                    />
+                                </div>
+                            </div>
+                        )}
+                        
+                        {(orderType === 'SL' || orderType === 'SL-M') && (
+                            <div>
+                                <label className="block text-[11px] text-gray-500 font-medium mb-2.5">Trigger Price (₹)</label>
+                                <div className="flex items-center bg-[#0B0E14] rounded-xl border border-[#1C212D] focus-within:border-gray-600 transition-colors p-1.5">
+                                    <input 
+                                        type="number" 
+                                        value={triggerPrice}
+                                        onChange={(e) => setTriggerPrice(e.target.value)}
+                                        placeholder={activePrice ? activePrice.toFixed(2) : "0.00"}
+                                        className="bg-transparent w-full text-white px-3 py-2 outline-none text-lg font-medium"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
                         <div>
                             <label className="block text-[11px] text-gray-500 font-medium mb-2.5">Quantity (Shares)</label>
                             <div className="flex items-center bg-[#0B0E14] rounded-xl border border-[#1C212D] focus-within:border-gray-600 transition-colors p-1.5">
@@ -405,10 +444,43 @@ export const TerminalPage = () => {
                             <span className="text-sm text-white font-bold tracking-wide">₹{totalValue.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
                         </div>
                         
-                        <div className="flex items-center gap-2 cursor-pointer group">
-                            <input type="checkbox" id="bracket" className="rounded border-gray-700 bg-transparent text-[#00E6A8] focus:ring-[#00E6A8] focus:ring-offset-0" />
-                            <label htmlFor="bracket" className="text-[11px] text-gray-400 group-hover:text-gray-300 font-medium transition-colors">Bracket Order (SL + Target)</label>
-                            <Info className="w-3.5 h-3.5 text-gray-500 ml-0.5" />
+                        <div className="flex flex-col gap-3">
+                            <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setIsBracketOrder(!isBracketOrder)}>
+                                <input 
+                                    type="checkbox" 
+                                    id="bracket" 
+                                    checked={isBracketOrder}
+                                    onChange={() => {}}
+                                    className="rounded border-gray-700 bg-transparent text-[#00E6A8] focus:ring-[#00E6A8] focus:ring-offset-0 cursor-pointer" 
+                                />
+                                <label className="text-[11px] text-gray-400 group-hover:text-gray-300 font-medium transition-colors cursor-pointer">Bracket Order (SL + Target)</label>
+                                <Info className="w-3.5 h-3.5 text-gray-500 ml-0.5" />
+                            </div>
+                            
+                            {isBracketOrder && (
+                                <div className="grid grid-cols-2 gap-3 p-3 bg-[#0B0E14] border border-[#1C212D] rounded-xl mt-1">
+                                    <div>
+                                        <label className="block text-[10px] text-gray-500 font-medium mb-1.5">Stop Loss (₹)</label>
+                                        <input 
+                                            type="number" 
+                                            value={stopLoss}
+                                            onChange={(e) => setStopLoss(e.target.value)}
+                                            placeholder="e.g. 5"
+                                            className="w-full bg-[#131722] border border-[#1C212D] text-white px-2.5 py-1.5 rounded-lg outline-none text-xs font-medium focus:border-rose-500/50"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] text-gray-500 font-medium mb-1.5">Target (₹)</label>
+                                        <input 
+                                            type="number" 
+                                            value={takeProfit}
+                                            onChange={(e) => setTakeProfit(e.target.value)}
+                                            placeholder="e.g. 10"
+                                            className="w-full bg-[#131722] border border-[#1C212D] text-white px-2.5 py-1.5 rounded-lg outline-none text-xs font-medium focus:border-[#00E6A8]/50"
+                                        />
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                     

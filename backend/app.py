@@ -398,6 +398,24 @@ def get_portfolio(user_id: str = Depends(get_current_user)):
     db.process_eod_square_off(user_id)
     portfolio = db.get_portfolio(user_id)
     trade_count = db.get_trade_count(user_id)
+    
+    # Generate history for equity curve chart
+    trades = db.get_trade_history(user_id)
+    closed_trades = sorted(
+        [t for t in trades if t.get('status') == 'CLOSED'], 
+        key=lambda x: str(x.get('timestamp'))
+    )
+    history = []
+    current_value = float(portfolio.get('initial_balance', 100000.0))
+    history.append({"time": "Start", "value": current_value})
+    
+    for idx, t in enumerate(closed_trades):
+        current_value += float(t.get('pnl', 0.0))
+        time_label = str(t.get('timestamp', f"Trade {idx+1}")).split('.')[0]
+        history.append({"time": time_label, "value": round(current_value, 2)})
+    
+    portfolio["history"] = history
+    
     unlocked = trade_count >= 6
     discipline_score = max(40, min(95, 85 - (trade_count * 2) if not unlocked else 92))
     

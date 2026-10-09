@@ -287,16 +287,7 @@ export const TerminalPage = () => {
             <div className={isChartExpanded ? 'fixed inset-6 z-50 bg-[#131722] rounded-2xl border border-[#1C212D] flex flex-col shadow-2xl overflow-hidden' : 'flex-1 flex flex-col bg-[#131722] rounded-2xl border border-[#1C212D] overflow-hidden shadow-sm relative'}>
                 <div className="flex justify-between items-center p-5 border-b border-[#1C212D]">
                     <div className="flex items-center gap-6">
-                        {TIMEFRAMES.map((tf) => (
-                            <button 
-                              key={tf.id} 
-                              onClick={() => setTimeframe(tf.id)}
-                              className={`text-[13px] font-medium pb-1 relative uppercase ${timeframe === tf.id ? 'text-[#00E6A8]' : 'text-gray-500 hover:text-gray-300'}`}
-                            >
-                                {tf.label}
-                                {timeframe === tf.id && <div className="absolute -bottom-[21px] left-0 right-0 h-0.5 bg-[#00E6A8]"></div>}
-                            </button>
-                        ))}
+                        {/* Timeline removed */}
                     </div>
                     <div className="flex items-center gap-4 text-xs">
                         <button onClick={() => setIsChartExpanded(!isChartExpanded)} className="p-1.5 hover:bg-[#1C212D] rounded text-gray-400 hover:text-white transition-colors">
@@ -669,25 +660,21 @@ export const TerminalPage = () => {
                  <div className="flex justify-between items-center mb-4">
                     <h3 className="text-[13px] font-semibold text-white flex items-center gap-2.5">
                         <BarChart3 className="w-4 h-4 text-gray-400" />
-                        Today's Performance
+                        Total Performance
                     </h3>
-                    <div className="flex items-center gap-2 bg-[#1C212D] px-2 py-1 rounded border border-gray-800 cursor-pointer hover:bg-gray-800 transition-colors">
-                        <span className="text-[11px] text-gray-300 font-medium">1D</span>
-                        <ChevronDown className="w-3 h-3 text-gray-500" />
-                    </div>
                 </div>
                 <div className="flex justify-between items-end mt-2 px-1">
                     <div className="flex flex-col">
                         <span className={`text-3xl font-bold tracking-tight mb-1 ${todayPnL >= 0 ? 'text-[#00E6A8]' : 'text-rose-500'}`}>
                             {todayPnL >= 0 ? '+' : '-'}₹{Math.abs(todayPnL).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                         </span>
-                        <span className="text-[11px] text-gray-500 font-medium">Today's P&L</span>
+                        <span className="text-[11px] text-gray-500 font-medium">Total P&L</span>
                     </div>
                     <div className="flex flex-col items-end">
                         <span className={`text-base font-bold mb-1 ${todayReturn >= 0 ? 'text-[#00E6A8]' : 'text-rose-500'}`}>
                             {todayReturn >= 0 ? '+' : '-'}{Math.abs(todayReturn).toFixed(2)}%
                         </span>
-                        <span className="text-[11px] text-gray-500 font-medium">Today's Return</span>
+                        <span className="text-[11px] text-gray-500 font-medium">Total Return</span>
                     </div>
                 </div>
                 <div className="mt-5 px-1 pb-1">

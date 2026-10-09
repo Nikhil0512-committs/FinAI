@@ -202,17 +202,17 @@ class YFinanceEngine:
             if now_ts - cached_ts < 20.0:
                 return cached_data
 
-        quotes = self.get_live_quotes(['^NSEI', '^NSEBANK'])
+        quotes = self.get_live_quotes(['^NSEI', '^BSESN'])
         quote_map = {q['symbol']: q for q in quotes}
         
         nifty = quote_map.get('^NSEI')
-        banknifty = quote_map.get('^NSEBANK')
+        sensex = quote_map.get('^BSESN')
 
         nifty_price = nifty['price'] if nifty else 22544.80
         nifty_chg = nifty['change_pct'] if nifty else 0.55
 
-        bn_price = banknifty['price'] if banknifty else 54707.80
-        bn_chg = banknifty['change_pct'] if banknifty else 0.47
+        sensex_price = sensex['price'] if sensex else 73730.16
+        sensex_chg = sensex['change_pct'] if sensex else 0.47
 
         res = {
             'nifty': {
@@ -221,11 +221,11 @@ class YFinanceEngine:
                 'price': round(nifty_price, 2),
                 'change_pct': round(nifty_chg, 2)
             },
-            'banknifty': {
-                'symbol': 'BANKNIFTY',
-                'name': 'BANK NIFTY',
-                'price': round(bn_price, 2),
-                'change_pct': round(bn_chg, 2)
+            'sensex': {
+                'symbol': 'SENSEX',
+                'name': 'BSE SENSEX',
+                'price': round(sensex_price, 2),
+                'change_pct': round(sensex_chg, 2)
             },
             'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }

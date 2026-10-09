@@ -388,7 +388,7 @@ export const TradingProvider = ({ children }) => {
   const [marketStatus, setMarketStatus] = useState({ is_open: false, session: 'AMO_OFF_MARKET_QUEUED', next_open: '09:15 AM IST' });
   const [marketIndices, setMarketIndices] = useState({
     nifty: { symbol: 'NIFTY', name: 'NIFTY 50', price: 22535.0, change_pct: 0.50 },
-    banknifty: { symbol: 'BANKNIFTY', name: 'BANK NIFTY', price: 54675.85, change_pct: 0.41 }
+    sensex: { symbol: 'SENSEX', name: 'BSE SENSEX', price: 73730.16, change_pct: 0.47 }
   });
 
   const fetchMarketStatus = async () => {

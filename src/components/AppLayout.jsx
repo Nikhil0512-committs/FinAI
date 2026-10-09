@@ -150,13 +150,13 @@ export const AppLayout = ({ children }) => {
                      </div>
                   </div>
                   <div className="flex flex-col">
-                     <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider mb-1">BANKNIFTY</span>
+                     <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider mb-1">SENSEX</span>
                      <div className="flex items-center gap-2">
                         <span className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                          {marketIndices?.banknifty?.price ? Number(marketIndices.banknifty.price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '54,675.85'}
+                          {marketIndices?.sensex?.price ? Number(marketIndices.sensex.price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '73,730.16'}
                         </span>
-                        <span className={`text-[11px] font-mono ${(marketIndices?.banknifty?.change_pct ?? 0) >= 0 ? 'text-[#00E6A8]' : 'text-rose-400'}`}>
-                          {(marketIndices?.banknifty?.change_pct ?? 0) >= 0 ? '+' : ''}{Number(marketIndices?.banknifty?.change_pct ?? 0.41).toFixed(2)}%
+                        <span className={`text-[11px] font-mono ${(marketIndices?.sensex?.change_pct ?? 0) >= 0 ? 'text-[#00E6A8]' : 'text-rose-400'}`}>
+                          {(marketIndices?.sensex?.change_pct ?? 0) >= 0 ? '+' : ''}{Number(marketIndices?.sensex?.change_pct ?? 0.47).toFixed(2)}%
                         </span>
                      </div>
                   </div>

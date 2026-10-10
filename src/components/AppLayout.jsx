@@ -138,10 +138,13 @@ export const AppLayout = ({ children }) => {
            {/* Right side icons */}
            <div className="flex items-center gap-4 lg:gap-8 shrink-0">
                <div className={`hidden md:flex items-center gap-4 lg:gap-8 border-r pr-4 lg:pr-8 ${isDarkMode ? 'border-[#1C212D]' : 'border-gray-200'}`}>
-                  <div className="flex flex-col">
-                     <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider mb-1">NIFTY</span>
+                  <div 
+                     className="flex flex-col cursor-pointer group"
+                     onClick={() => { setSelectedStock('NIFTY'); navigate('/terminal'); }}
+                  >
+                     <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider mb-1 group-hover:text-[#00E6A8] transition-colors">NIFTY</span>
                      <div className="flex items-center gap-2">
-                        <span className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        <span className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'} group-hover:text-[#00E6A8] transition-colors`}>
                           {marketIndices?.nifty?.price ? Number(marketIndices.nifty.price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '22,535.00'}
                         </span>
                         <span className={`text-[11px] font-mono ${(marketIndices?.nifty?.change_pct ?? 0) >= 0 ? 'text-[#00E6A8]' : 'text-rose-400'}`}>
@@ -149,10 +152,13 @@ export const AppLayout = ({ children }) => {
                         </span>
                      </div>
                   </div>
-                  <div className="flex flex-col">
-                     <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider mb-1">BANKNIFTY</span>
+                  <div 
+                     className="flex flex-col cursor-pointer group"
+                     onClick={() => { setSelectedStock('BANKNIFTY'); navigate('/terminal'); }}
+                  >
+                     <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider mb-1 group-hover:text-[#00E6A8] transition-colors">BANKNIFTY</span>
                      <div className="flex items-center gap-2">
-                        <span className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        <span className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'} group-hover:text-[#00E6A8] transition-colors`}>
                           {marketIndices?.banknifty?.price ? Number(marketIndices.banknifty.price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '54,675.85'}
                         </span>
                         <span className={`text-[11px] font-mono ${(marketIndices?.banknifty?.change_pct ?? 0) >= 0 ? 'text-[#00E6A8]' : 'text-rose-400'}`}>

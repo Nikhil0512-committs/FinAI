@@ -25,7 +25,7 @@ const DEFAULT_TOP_STOCKS = [
 const TradingContext = createContext();
 
 export const TradingProvider = ({ children }) => {
-  const { user, userId, token, setIsAuthModalOpen } = useAuth();
+  const { user, userId, token, setIsAuthModalOpen, logout } = useAuth();
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [demoInitializationState, setDemoInitializationState] = useState('IDLE');
   const [selectedStock, setSelectedStock] = useState('ADANIENT');
@@ -88,6 +88,8 @@ export const TradingProvider = ({ children }) => {
         setTradeCount(data.trade_count);
         setProfileUnlocked(data.profile_unlocked);
         setDisciplineScore(data.discipline_score);
+      } else if (res.status === 401 && logout) {
+        logout();
       }
     } catch (e) {
       console.warn("Using fallback local portfolio state");
@@ -103,6 +105,8 @@ export const TradingProvider = ({ children }) => {
       if (res.ok) {
         const data = await res.json();
         setTrades(data.trades);
+      } else if (res.status === 401 && logout) {
+        logout();
       }
     } catch (e) {
       console.warn("Using fallback trade history");
@@ -162,6 +166,8 @@ export const TradingProvider = ({ children }) => {
       if (res.ok) {
         const data = await res.json();
         setWatchlist(data.watchlist || []);
+      } else if (res.status === 401 && logout) {
+        logout();
       }
     } catch (e) {
       console.warn("Watchlist fetch error:", e);

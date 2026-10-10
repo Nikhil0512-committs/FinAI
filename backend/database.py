@@ -1494,7 +1494,10 @@ class FinAIDatabase:
             if side_upper == 'SELL' and tp_val >= price:
                 raise ValueError(f"For SELL orders, Take Profit ({tp_val}) must be strictly less than execution price ({price}).")
 
-        if order_type == 'AMO':
+        if not self.is_market_open():
+            status = 'AMO_PENDING'
+            trade_order_type = 'AMO'
+        elif order_type == 'AMO':
             status = 'AMO_PENDING'
             trade_order_type = 'AMO'
         else:
@@ -1587,6 +1590,9 @@ class FinAIDatabase:
 
     def process_sl_tp_triggers(self):
         """Scans all active EXECUTED trades and automatically triggers SL/TP square-offs."""
+        if not self.is_market_open():
+            return []
+            
         with self._db_lock:
             cursor = self.sqlite_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             cursor.execute("SELECT * FROM trades WHERE status = 'EXECUTED' AND (stop_loss IS NOT NULL OR take_profit IS NOT NULL)")

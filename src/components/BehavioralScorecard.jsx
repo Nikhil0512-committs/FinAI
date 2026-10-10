@@ -671,7 +671,7 @@ export const BehavioralScorecard = () => {
         </section>
 
         {/* ─── 06. EDUCATIONAL CLINIC ─── */}
-        <section className="break-inside-avoid mt-16 mb-8 border border-gray-900 bg-gray-900/40 p-1">
+        <section className="break-inside-avoid mt-16 mb-8 border border-gray-900 bg-gray-900/40 p-1 hidden">
           <div className="bg-[#050811] p-10 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-cyan-500 via-emerald-500 to-amber-500" />
             
